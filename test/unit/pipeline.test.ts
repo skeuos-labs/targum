@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   AMAZING_GRACE,
   convertFile,
@@ -367,6 +367,20 @@ describe('Pipeline Importer (importFile)', () => {
       expect(res.error).toBeInstanceOf(Error);
     }
   });
+
+  it('catches synchronous and asynchronous exceptions in format.importBytes', async () => {
+    const format = getFormat('pro');
+    const spy = vi
+      .spyOn(format!, 'importBytes')
+      .mockRejectedValueOnce(new Error('Simulated codec crash'));
+
+    const res = await importFile(new Uint8Array([0x0a, 0x01]), 'test.pro');
+    expect(res.ok).toBe(false);
+    if (!res.ok) {
+      expect(res.error.message).toBe('Simulated codec crash');
+    }
+    spy.mockRestore();
+  });
 });
 
 describe('Pipeline Exporter (exportLibrary & exportPresentation)', () => {
@@ -437,6 +451,20 @@ describe('Pipeline Exporter (exportLibrary & exportPresentation)', () => {
     expect(res.value.bytes.byteLength).toBeGreaterThan(0);
     const text = new TextDecoder().decode(res.value.bytes);
     expect(text).toContain('Amazing Grace');
+  });
+
+  it('catches synchronous exceptions in format.exportBytes', async () => {
+    const format = getFormat('pro');
+    const spy = vi.spyOn(format!, 'exportBytes').mockImplementationOnce(() => {
+      throw new Error('Sync export crash');
+    });
+
+    const res = await exportLibrary(library, 'pro');
+    expect(res.ok).toBe(false);
+    if (!res.ok) {
+      expect(res.error.message).toBe('Sync export crash');
+    }
+    spy.mockRestore();
   });
 });
 
@@ -573,6 +601,20 @@ describe('Pipeline Conversion (convertFile)', () => {
     if (!res.ok) {
       expect(res.error.message).toMatch(/export/i);
     }
+  });
+
+  it('catches unexpected exceptions during convertFile', async () => {
+    const format = getFormat('txt');
+    const spy = vi
+      .spyOn(format!, 'importBytes')
+      .mockRejectedValueOnce(new Error('Converter pipeline crash'));
+
+    const res = await convertFile(new Uint8Array([1, 2, 3]), 'song.txt', 'pro');
+    expect(res.ok).toBe(false);
+    if (!res.ok) {
+      expect(res.error.message).toBe('Converter pipeline crash');
+    }
+    spy.mockRestore();
   });
 });
 

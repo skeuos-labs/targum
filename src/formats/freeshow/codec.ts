@@ -116,6 +116,10 @@ function itemText(item: FsItem, hadStyleRef: { value: boolean }): string {
   return lines.join('\n');
 }
 
+function isMacMetadata(name: string): boolean {
+  return name.startsWith('__MACOSX/') || (name.split('/').pop()?.startsWith('._') ?? false);
+}
+
 function isRawJson(bytes: Uint8Array): boolean {
   for (let i = 0; i < bytes.byteLength; i++) {
     const b = bytes[i];
@@ -160,7 +164,10 @@ export async function parseFreeShow(
       zipReader = new ZipReader(new Uint8ArrayReader(bytes));
       const entries = await zipReader.getEntries();
       const jsonEntry = entries.find(
-        (e) => !e.directory && e.filename.toLowerCase().endsWith('.json')
+        (e) =>
+          !e.directory &&
+          !isMacMetadata(e.filename) &&
+          e.filename.toLowerCase().endsWith('.json')
       );
       if (!jsonEntry || jsonEntry.directory || !jsonEntry.getData) {
         return {
@@ -547,6 +554,10 @@ export async function writeFreeShow(
       };
 
       const text = slide.items.map((i) => i.plainText).join('\n');
+      const lines = text.split(/\r?\n/).map((line) => ({
+        align: '',
+        text: [{ value: line, style: '' }],
+      }));
       slides[slide.id] = {
         name: slide.label ?? '',
         group: groupId,
@@ -555,21 +566,21 @@ export async function writeFreeShow(
         items: [
           {
             type: 'text',
-            lines: [
-              {
-                align: '',
-                text: [{ value: text, style: '' }],
-              },
-            ],
+            lines,
           },
         ],
       };
     }
 
+    const defaultArrangement = p.arrangements?.find((arr) => arr.id === 'default');
+    const defaultSlideIds = defaultArrangement
+      ? defaultArrangement.slideIds
+      : p.slides.map((s) => s.id);
+
     const layouts: Record<string, unknown> = {
       default: {
-        name: 'Default',
-        slides: p.slides.map((s) => ({ id: s.id })),
+        name: defaultArrangement?.name ?? 'Default',
+        slides: defaultSlideIds.map((id) => ({ id })),
       },
     };
 

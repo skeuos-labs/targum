@@ -1,4 +1,11 @@
-import { TextReader, Uint8ArrayWriter, ZipWriter } from '@zip.js/zip.js';
+import {
+  TextReader,
+  TextWriter,
+  Uint8ArrayReader,
+  Uint8ArrayWriter,
+  ZipReader,
+  ZipWriter,
+} from '@zip.js/zip.js';
 import { describe, expect, it } from 'vitest';
 import type { Library, Presentation } from '../../src/canonical/index.js';
 import { AMAZING_GRACE } from '../../src/fixtures/amazing-grace.js';
@@ -463,6 +470,165 @@ describe('FreeShow .show Codec', () => {
         'Slide One',
         'Slide Two',
       ]);
+    });
+  });
+
+  describe('macOS AppleDouble metadata filtering', () => {
+    it('skips __MACOSX and ._ JSON entries and parses real show.json', async () => {
+      const doc = {
+        presentations: {
+          p1: {
+            name: 'Song with Mac Metadata',
+            slides: {
+              s1: { group: 'Verse', items: [{ lines: [line('Real lyric')] }] },
+            },
+          },
+        },
+      };
+
+      const writer = new ZipWriter(new Uint8ArrayWriter());
+      await writer.add('__MACOSX/._show.json', new TextReader('corrupt apple double'));
+      await writer.add('__MACOSX/p1/._data.json', new TextReader('corrupt'));
+      await writer.add('show.json', new TextReader(JSON.stringify(doc)));
+      const bytes = await writer.close();
+
+      const res = await parseFreeShow(bytes);
+      expect(res.ok).toBe(true);
+      if (!res.ok) return;
+      expect(res.value.presentations[0]!.title).toBe('Song with Mac Metadata');
+    });
+
+    it('fails closed when archive only contains AppleDouble metadata JSON files', async () => {
+      const writer = new ZipWriter(new Uint8ArrayWriter());
+      await writer.add('__MACOSX/._show.json', new TextReader('corrupt metadata'));
+      await writer.add('._hidden.json', new TextReader('corrupt metadata'));
+      const bytes = await writer.close();
+
+      const res = await parseFreeShow(bytes);
+      expect(res.ok).toBe(false);
+      if (res.ok) return;
+      expect(res.error.message).toContain('No JSON document found');
+    });
+  });
+
+  describe('writeFreeShow: Line Splitting & Default Arrangement', () => {
+    async function unpackShowJson(bytes: Uint8Array): Promise<any> {
+      const reader = new ZipReader(new Uint8ArrayReader(bytes));
+      const entries = await reader.getEntries();
+      const jsonEntry = entries.find((e) => e.filename === 'show.json');
+      expect(jsonEntry).toBeDefined();
+      const text = await jsonEntry!.getData(new TextWriter());
+      await reader.close();
+      return JSON.parse(text);
+    }
+
+    it('splits multi-line slide text on newlines into distinct line objects', async () => {
+      const multiLinePres: Presentation = {
+        id: 'p-multiline',
+        title: 'Multiline Song',
+        sourceFormat: 'freeshow',
+        metadata: {},
+        sections: [{ id: 'sec-1', name: 'Verse', slideIds: ['s1'] }],
+        arrangements: [{ id: 'arr-1', name: 'Default', slideIds: ['s1'] }],
+        slides: [
+          {
+            id: 's1',
+            items: [{ type: 'text', plainText: 'Line 1\nLine 2\r\nLine 3' }],
+          },
+        ],
+        warnings: [],
+      };
+
+      const writeRes = await writeFreeShow({ presentations: [multiLinePres] });
+      expect(writeRes.ok).toBe(true);
+      if (!writeRes.ok) return;
+
+      const doc = await unpackShowJson(writeRes.value.bytes);
+      const slide = doc.presentations['p-multiline'].slides['s1'];
+      expect(slide.items[0].lines).toEqual([
+        { align: '', text: [{ value: 'Line 1', style: '' }] },
+        { align: '', text: [{ value: 'Line 2', style: '' }] },
+        { align: '', text: [{ value: 'Line 3', style: '' }] },
+      ]);
+    });
+
+    it('populates layouts.default with slideIds when an arrangement has id "default"', async () => {
+      const presWithDefaultArr: Presentation = {
+        id: 'p-arr',
+        title: 'Arrangement Song',
+        sourceFormat: 'freeshow',
+        metadata: {},
+        sections: [{ id: 'sec-1', name: 'Verse', slideIds: ['s1', 's2'] }],
+        arrangements: [
+          {
+            id: 'default',
+            name: 'Reordered Default',
+            slideIds: ['s2', 's1'],
+          },
+          {
+            id: 'chorus-first',
+            name: 'Chorus First',
+            slideIds: ['s1'],
+          },
+        ],
+        slides: [
+          { id: 's1', items: [{ type: 'text', plainText: 'Slide 1' }] },
+          { id: 's2', items: [{ type: 'text', plainText: 'Slide 2' }] },
+        ],
+        warnings: [],
+      };
+
+      const writeRes = await writeFreeShow({ presentations: [presWithDefaultArr] });
+      expect(writeRes.ok).toBe(true);
+      if (!writeRes.ok) return;
+
+      const doc = await unpackShowJson(writeRes.value.bytes);
+      const layouts = doc.presentations['p-arr'].layouts;
+      expect(layouts.default).toEqual({
+        name: 'Reordered Default',
+        slides: [{ id: 's2' }, { id: 's1' }],
+      });
+      expect(layouts['chorus-first']).toEqual({
+        name: 'Chorus First',
+        slides: [{ id: 's1' }],
+      });
+    });
+
+    it('falls back to linear slideIds for layouts.default when no "default" arrangement exists', async () => {
+      const presWithoutDefault: Presentation = {
+        id: 'p-no-def',
+        title: 'No Default Arr Song',
+        sourceFormat: 'freeshow',
+        metadata: {},
+        sections: [{ id: 'sec-1', name: 'Verse', slideIds: ['s1', 's2'] }],
+        arrangements: [
+          {
+            id: 'alternate',
+            name: 'Alternate Order',
+            slideIds: ['s2'],
+          },
+        ],
+        slides: [
+          { id: 's1', items: [{ type: 'text', plainText: 'Slide 1' }] },
+          { id: 's2', items: [{ type: 'text', plainText: 'Slide 2' }] },
+        ],
+        warnings: [],
+      };
+
+      const writeRes = await writeFreeShow({ presentations: [presWithoutDefault] });
+      expect(writeRes.ok).toBe(true);
+      if (!writeRes.ok) return;
+
+      const doc = await unpackShowJson(writeRes.value.bytes);
+      const layouts = doc.presentations['p-no-def'].layouts;
+      expect(layouts.default).toEqual({
+        name: 'Default',
+        slides: [{ id: 's1' }, { id: 's2' }],
+      });
+      expect(layouts.alternate).toEqual({
+        name: 'Alternate Order',
+        slides: [{ id: 's2' }],
+      });
     });
   });
 });

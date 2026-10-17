@@ -44,84 +44,84 @@ export async function writeVpc(
     };
   }
 
-  const warnings: Warning[] = [];
-  const songs: Record<string, unknown>[] = [];
-
-  for (const pres of presentations) {
-    const slideToSection = new Map<string, Section>();
-    for (const section of pres.sections) {
-      for (const slideId of section.slideIds) {
-        if (!slideToSection.has(slideId)) {
-          slideToSection.set(slideId, section);
-        }
-      }
-    }
-
-    const verses: Record<string, unknown>[] = [];
-    const seenUnmapped = new Set<string>();
-
-    for (const slide of pres.slides) {
-      const section = slideToSection.get(slide.id);
-      const sectionName = section?.name ?? slide.label ?? 'Verse';
-      const normalizedName = sectionName.trim().toLowerCase();
-
-      const tag = SECTION_TO_TAG[normalizedName];
-      const verseObj: Record<string, unknown> = {};
-
-      if (tag !== undefined) {
-        verseObj.Tag = tag;
-      } else {
-        verseObj.Name = sectionName;
-        if (!seenUnmapped.has(sectionName)) {
-          seenUnmapped.add(sectionName);
-          warnings.push(
-            warning(
-              'VPC_TAG_UNMAPPED',
-              'info',
-              `Section "${sectionName}" has no direct VideoPsalm tag; emitting as custom verse name`,
-              { presentationId: pres.id, sectionName }
-            )
-          );
-        }
-      }
-
-      const text = slide.items.map((item) => item.plainText).join('\n');
-      verseObj.Text = text;
-
-      verses.push(verseObj);
-    }
-
-    const songObj: Record<string, unknown> = {
-      Guid: pres.metadata.songId ?? pres.id,
-      Text: pres.title,
-      Verses: verses,
-    };
-
-    if (pres.metadata.author) {
-      songObj.Author = pres.metadata.author;
-    }
-    if (pres.metadata.copyright) {
-      songObj.Copyright = pres.metadata.copyright;
-    }
-    if (pres.metadata.ccli) {
-      songObj.Ccli = pres.metadata.ccli;
-    }
-    if (pres.metadata.notes) {
-      songObj.Notes = pres.metadata.notes;
-    }
-
-    songs.push(songObj);
-  }
-
-  const songbook = { Songs: songs };
-  const serialized = serializeDialect(songbook);
-
-  const entryName =
-    presentations.length === 1
-      ? `${sanitizeEntryTitle(presentations[0]!.title)}.json`
-      : 'library.json';
-
   try {
+    const warnings: Warning[] = [];
+    const songs: Record<string, unknown>[] = [];
+
+    for (const pres of presentations) {
+      const slideToSection = new Map<string, Section>();
+      for (const section of pres.sections) {
+        for (const slideId of section.slideIds) {
+          if (!slideToSection.has(slideId)) {
+            slideToSection.set(slideId, section);
+          }
+        }
+      }
+
+      const verses: Record<string, unknown>[] = [];
+      const seenUnmapped = new Set<string>();
+
+      for (const slide of pres.slides) {
+        const section = slideToSection.get(slide.id);
+        const sectionName = section?.name ?? slide.label ?? 'Verse';
+        const normalizedName = sectionName.trim().toLowerCase();
+
+        const tag = SECTION_TO_TAG[normalizedName];
+        const verseObj: Record<string, unknown> = {};
+
+        if (tag !== undefined) {
+          verseObj.Tag = tag;
+        } else {
+          verseObj.Name = sectionName;
+          if (!seenUnmapped.has(sectionName)) {
+            seenUnmapped.add(sectionName);
+            warnings.push(
+              warning(
+                'VPC_TAG_UNMAPPED',
+                'info',
+                `Section "${sectionName}" has no direct VideoPsalm tag; emitting as custom verse name`,
+                { presentationId: pres.id, sectionName }
+              )
+            );
+          }
+        }
+
+        const text = slide.items.map((item) => item.plainText).join('\n');
+        verseObj.Text = text;
+
+        verses.push(verseObj);
+      }
+
+      const songObj: Record<string, unknown> = {
+        Guid: pres.metadata.songId ?? pres.id,
+        Text: pres.title,
+        Verses: verses,
+      };
+
+      if (pres.metadata.author) {
+        songObj.Author = pres.metadata.author;
+      }
+      if (pres.metadata.copyright) {
+        songObj.Copyright = pres.metadata.copyright;
+      }
+      if (pres.metadata.ccli) {
+        songObj.Ccli = pres.metadata.ccli;
+      }
+      if (pres.metadata.notes) {
+        songObj.Notes = pres.metadata.notes;
+      }
+
+      songs.push(songObj);
+    }
+
+    const songbook = { Songs: songs };
+    const serialized = serializeDialect(songbook);
+
+    const entryName =
+      presentations.length === 1
+        ? `${sanitizeEntryTitle(presentations[0]!.title)}.json`
+        : 'library.json';
+
     const zipWriter = new ZipWriter(new Uint8ArrayWriter(), {
       password: VPC_KEY,
       encryptionStrength: 1,

@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { TextReader, Uint8ArrayWriter, ZipWriter } from '@zip.js/zip.js';
 import { describe, expect, it } from 'vitest';
 import { AMAZING_GRACE } from '../../src/fixtures/amazing-grace.js';
 import {
@@ -227,6 +228,57 @@ describe('VideoPsalm VPC Archive Reader & Writer', () => {
       if (!res.ok) {
         expect(res.error).toBeInstanceOf(Error);
       }
+    });
+
+    it('skips __MACOSX and ._ AppleDouble metadata entries in VPC ZIP', async () => {
+      const validSongbook = JSON.stringify({
+        Songs: [
+          {
+            Guid: 'test-song',
+            Text: 'Test Song',
+            Verses: [{ Tag: 1, Text: 'Lyric verse' }],
+          },
+        ],
+      });
+
+      const zipWriter = new ZipWriter(new Uint8ArrayWriter(), {
+        password: VPC_KEY,
+        encryptionStrength: 1,
+      });
+      await zipWriter.add('__MACOSX/._song.json', new TextReader('corrupt metadata'));
+      await zipWriter.add('song.json', new TextReader(validSongbook));
+      const bytes = await zipWriter.close();
+
+      const res = await parseVpc(bytes);
+      expect(res.ok).toBe(true);
+      if (!res.ok) return;
+      expect(res.value.presentations[0]!.title).toBe('Test Song');
+    });
+
+    it('fails closed when VPC ZIP contains only AppleDouble metadata JSON files', async () => {
+      const zipWriter = new ZipWriter(new Uint8ArrayWriter(), {
+        password: VPC_KEY,
+        encryptionStrength: 1,
+      });
+      await zipWriter.add('__MACOSX/._song.json', new TextReader('corrupt metadata'));
+      await zipWriter.add('._metadata.json', new TextReader('corrupt metadata'));
+      const bytes = await zipWriter.close();
+
+      const res = await parseVpc(bytes);
+      expect(res.ok).toBe(false);
+      if (res.ok) return;
+      expect(res.error.message).toContain('No JSON entry found in VideoPsalm VPC archive');
+    });
+
+    it('writeVpc catches malformed presentation preprocessing exceptions and returns ok: false', async () => {
+      const malformedPres = {
+        ...AMAZING_GRACE,
+        slides: null as unknown as Presentation['slides'],
+      };
+      const res = await writeVpc([malformedPres as unknown as Presentation]);
+      expect(res.ok).toBe(false);
+      if (res.ok) return;
+      expect(res.error).toBeInstanceOf(Error);
     });
   });
 });

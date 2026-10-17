@@ -3,6 +3,10 @@ import type { Library } from '../../canonical/index.js';
 import { parseLibraryJson, type Result } from './json.js';
 import { VPC_KEY } from './key.js';
 
+function isMacMetadata(name: string): boolean {
+  return name.startsWith('__MACOSX/') || (name.split('/').pop()?.startsWith('._') ?? false);
+}
+
 /**
  * Parses an AES-128 encrypted VideoPsalm VPC archive into a canonical Library.
  * Fails closed on invalid ZIP bytes, missing password, or missing JSON entry.
@@ -25,7 +29,10 @@ export async function parseVpc(
     zipReader = new ZipReader(new Uint8ArrayReader(bytes), { password: VPC_KEY });
     const entries = await zipReader.getEntries();
     const jsonEntry = entries.find(
-      (e) => !e.directory && e.filename.toLowerCase().endsWith('.json')
+      (e) =>
+        !e.directory &&
+        !isMacMetadata(e.filename) &&
+        e.filename.toLowerCase().endsWith('.json')
     );
 
     if (!jsonEntry || jsonEntry.directory) {
