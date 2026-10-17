@@ -20,7 +20,7 @@ describe('Amazing Grace Deterministic Baseline Fixture', () => {
     expect(AMAZING_GRACE.metadata.ccli).toBe('22025');
   });
 
-  it('contains exactly 9 slides with non-empty text items', () => {
+  it('contains exactly 9 slides with non-empty text items and public domain lyrics', () => {
     expect(AMAZING_GRACE.slides).toHaveLength(9);
 
     for (const slide of AMAZING_GRACE.slides) {
@@ -29,8 +29,13 @@ describe('Amazing Grace Deterministic Baseline Fixture', () => {
       for (const item of slide.items) {
         expect(item.type).toBe('text');
         expect(item.plainText.trim().length).toBeGreaterThan(0);
+        // Ensure no copyrighted Tomlin 2006 lyrics
+        expect(item.plainText).not.toContain('chains are gone');
       }
     }
+
+    const chorusSlide = AMAZING_GRACE.slides.find((s) => s.id === 'ag-slide-c-1');
+    expect(chorusSlide?.items[0]?.plainText).toContain('Praise God, praise God');
   });
 
   it('has unique slide IDs across all slides', () => {
@@ -69,15 +74,17 @@ describe('Amazing Grace Deterministic Baseline Fixture', () => {
     expect(new Set(allSectionSlideIds).size).toBe(9);
   });
 
-  it('defines Standard and Short arrangements with clean slide references', () => {
-    expect(AMAZING_GRACE.arrangements).toHaveLength(2);
+  it('defines Standard, Full, and Short arrangements with clean slide references', () => {
+    expect(AMAZING_GRACE.arrangements).toHaveLength(3);
 
     const standard = AMAZING_GRACE.arrangements.find(
       (a) => a.name === 'Standard',
     );
+    const full = AMAZING_GRACE.arrangements.find((a) => a.name === 'Full');
     const short = AMAZING_GRACE.arrangements.find((a) => a.name === 'Short');
 
     expect(standard).toBeDefined();
+    expect(full).toBeDefined();
     expect(short).toBeDefined();
 
     const v1 = AMAZING_GRACE.sections.find((s) => s.name === 'Verse 1')!;
@@ -90,8 +97,8 @@ describe('Amazing Grace Deterministic Baseline Fixture', () => {
     expect(short?.slideIds).toEqual([...v1.slideIds, ...v4.slideIds]);
     expect(short?.slideIds).toHaveLength(4);
 
-    // Standard: V1 -> Chorus -> V2 -> Chorus -> V3 -> Chorus -> V4 -> Chorus (8 sections, 12 slides)
-    expect(standard?.slideIds).toEqual([
+    // Standard & Full: V1 -> Chorus -> V2 -> Chorus -> V3 -> Chorus -> V4 -> Chorus (8 sections, 12 slides)
+    const expectedFullSequence = [
       ...v1.slideIds,
       ...chorus.slideIds,
       ...v2.slideIds,
@@ -100,8 +107,11 @@ describe('Amazing Grace Deterministic Baseline Fixture', () => {
       ...chorus.slideIds,
       ...v4.slideIds,
       ...chorus.slideIds,
-    ]);
+    ];
+    expect(standard?.slideIds).toEqual(expectedFullSequence);
     expect(standard?.slideIds).toHaveLength(12);
+    expect(full?.slideIds).toEqual(expectedFullSequence);
+    expect(full?.slideIds).toHaveLength(12);
   });
 
   it('validates without reference warnings or schema errors', () => {
@@ -116,7 +126,26 @@ describe('Amazing Grace Deterministic Baseline Fixture', () => {
     expect(parseResult.value.warnings).toHaveLength(0);
   });
 
-  it('createAmazingGracePresentation returns a fresh deep clone', () => {
+  it('protects exported AMAZING_GRACE singleton via deep freeze', () => {
+    expect(Object.isFrozen(AMAZING_GRACE)).toBe(true);
+    expect(Object.isFrozen(AMAZING_GRACE.metadata)).toBe(true);
+    expect(Object.isFrozen(AMAZING_GRACE.sections)).toBe(true);
+    expect(Object.isFrozen(AMAZING_GRACE.arrangements)).toBe(true);
+    expect(Object.isFrozen(AMAZING_GRACE.slides)).toBe(true);
+    expect(Object.isFrozen(AMAZING_GRACE.slides[0])).toBe(true);
+
+    expect(() => {
+      // @ts-expect-error mutating frozen object
+      AMAZING_GRACE.title = 'Mutated Title';
+    }).toThrow();
+
+    expect(() => {
+      // @ts-expect-error mutating frozen nested object
+      AMAZING_GRACE.slides[0].id = 'mutated-slide';
+    }).toThrow();
+  });
+
+  it('createAmazingGracePresentation returns a fresh deep clone that is mutable', () => {
     const copy1 = createAmazingGracePresentation();
     const copy2 = createAmazingGracePresentation();
 
@@ -126,9 +155,10 @@ describe('Amazing Grace Deterministic Baseline Fixture', () => {
     expect(copy1.slides).not.toBe(copy2.slides);
     expect(copy1.slides[0]).not.toBe(copy2.slides[0]);
 
-    // Mutating a copy must not affect AMAZING_GRACE or copy2
+    // Mutating a copy must succeed and not affect AMAZING_GRACE or copy2
     copy1.title = 'Mutated Title';
     copy1.slides[0]!.id = 'mutated-id';
+    expect(copy1.title).toBe('Mutated Title');
     expect(AMAZING_GRACE.title).toBe('Amazing Grace');
     expect(copy2.title).toBe('Amazing Grace');
     expect(AMAZING_GRACE.slides[0]!.id).not.toBe('mutated-id');

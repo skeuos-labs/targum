@@ -3,6 +3,20 @@ import {
   type Presentation,
 } from '../canonical/index.js';
 
+function deepFreeze<T>(obj: T): Readonly<T> {
+  if (obj === null || typeof obj !== 'object') {
+    return obj;
+  }
+  Object.freeze(obj);
+  for (const key of Object.keys(obj)) {
+    const val = (obj as Record<string, unknown>)[key];
+    if (val !== null && typeof val === 'object' && !Object.isFrozen(val)) {
+      deepFreeze(val);
+    }
+  }
+  return obj;
+}
+
 function buildAmazingGracePresentation(): Presentation {
   const raw = {
     id: 'presentation-amazing-grace',
@@ -46,6 +60,24 @@ function buildAmazingGracePresentation(): Presentation {
       {
         id: 'arr-standard',
         name: 'Standard',
+        slideIds: [
+          'ag-slide-v1-1',
+          'ag-slide-v1-2',
+          'ag-slide-c-1',
+          'ag-slide-v2-1',
+          'ag-slide-v2-2',
+          'ag-slide-c-1',
+          'ag-slide-v3-1',
+          'ag-slide-v3-2',
+          'ag-slide-c-1',
+          'ag-slide-v4-1',
+          'ag-slide-v4-2',
+          'ag-slide-c-1',
+        ],
+      },
+      {
+        id: 'arr-full',
+        name: 'Full',
         slideIds: [
           'ag-slide-v1-1',
           'ag-slide-v1-2',
@@ -120,7 +152,7 @@ function buildAmazingGracePresentation(): Presentation {
           {
             type: 'text' as const,
             plainText:
-              'My chains are gone, I have been set free,\nMy God, my Savior has ransomed me,\nAnd like a flood His mercy reigns,\nUnending love, amazing grace.',
+              'Praise God, praise God, His love endures;\nForevermore His grace secures.',
           },
         ],
       },
@@ -182,4 +214,6 @@ export function createAmazingGracePresentation(): Presentation {
   return buildAmazingGracePresentation();
 }
 
-export const AMAZING_GRACE: Presentation = createAmazingGracePresentation();
+export const AMAZING_GRACE: Presentation = deepFreeze(
+  createAmazingGracePresentation(),
+);
