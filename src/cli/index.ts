@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { parseCliArgs } from './args.js';
 import { executeConvertCommand } from './commands/convert.js';
 import { executeFormatsCommand } from './commands/formats.js';
@@ -73,8 +75,13 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
   }
 }
 
-main().catch((err: unknown) => {
-  const message = err instanceof Error ? err.message : String(err);
-  process.stderr.write(`Fatal error: ${message}\n`);
-  process.exitCode = 2;
-});
+const isMain =
+  process.argv[1] &&
+  resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url));
+
+if (isMain) {
+  main().catch((err) => {
+    process.stderr.write(`[FATAL] ${err instanceof Error ? err.message : String(err)}\n`);
+    process.exit(2);
+  });
+}

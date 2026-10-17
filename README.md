@@ -64,11 +64,12 @@ Sample output:
 [
   {
     "id": "pro",
-    "name": "ProPresenter 7+",
-    "extensions": [".pro"],
+    "label": "ProPresenter 7+",
+    "extensions": [
+      ".pro"
+    ],
     "canImport": true,
-    "canExport": true,
-    "supportsMultiSong": false
+    "canExport": true
   },
   ...
 ]

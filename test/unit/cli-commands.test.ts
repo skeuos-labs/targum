@@ -201,6 +201,19 @@ describe('CLI Commands: formats, inspect, and convert', () => {
       expect(res.stdout).toBe(outVpc);
     });
 
+    it('accepts "show" as alias for freeshow format and converts successfully', async () => {
+      const outShow = path.resolve(TMP_DIR, 'izy.show');
+      const res = await executeConvertCommand({
+        input: IZY_PRO_PATH,
+        to: 'show',
+        out: outShow,
+      });
+
+      expect(res.exitCode).toBe(0);
+      expect(fs.existsSync(outShow)).toBe(true);
+      expect(res.stdout).toBe(outShow);
+    });
+
     it('refuses to overwrite existing file without --force (exitCode 3) and succeeds with --force (exitCode 0)', async () => {
       const outVpc = path.resolve(TMP_DIR, 'izy.vpc');
       const firstRes = await executeConvertCommand({

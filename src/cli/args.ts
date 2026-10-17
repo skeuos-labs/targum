@@ -105,12 +105,18 @@ export function parseCliArgs(argv: string[]): CliParsedResult {
   }
 
   if (first === 'formats') {
+    if (parsed.positionals.length > 1) {
+      return { ok: false, error: `Unexpected argument: "${parsed.positionals[1]}"`, help: HELP_TEXT };
+    }
     return { ok: true, command: { kind: 'formats', json: Boolean(parsed.values.json) } };
   }
 
   if (first === 'inspect') {
     if (!second) {
       return { ok: false, error: 'Missing required input file for inspect command', help: HELP_TEXT };
+    }
+    if (parsed.positionals.length > 2) {
+      return { ok: false, error: `Unexpected argument: "${parsed.positionals[2]}"`, help: HELP_TEXT };
     }
     return { ok: true, command: { kind: 'inspect', input: second, json: Boolean(parsed.values.json) } };
   }
@@ -119,15 +125,19 @@ export function parseCliArgs(argv: string[]): CliParsedResult {
     if (!second) {
       return { ok: false, error: 'Missing required input file for convert command', help: HELP_TEXT };
     }
+    if (parsed.positionals.length > 2) {
+      return { ok: false, error: `Unexpected argument: "${parsed.positionals[2]}"`, help: HELP_TEXT };
+    }
     if (!parsed.values.to) {
       return { ok: false, error: 'Missing required --to / -t option for convert command', help: HELP_TEXT };
     }
+    const toFormat = parsed.values.to.toLowerCase() === 'show' ? 'freeshow' : parsed.values.to;
     return {
       ok: true,
       command: {
         kind: 'convert',
         input: second,
-        to: parsed.values.to,
+        to: toFormat,
         ...(parsed.values.out !== undefined ? { out: parsed.values.out } : {}),
         force: Boolean(parsed.values.force),
         strict: Boolean(parsed.values.strict),
@@ -148,15 +158,19 @@ export function parseCliArgs(argv: string[]): CliParsedResult {
     parsed.values.split !== undefined;
 
   if (hasConvertFlags) {
+    if (parsed.positionals.length > 1) {
+      return { ok: false, error: `Unexpected argument: "${parsed.positionals[1]}"`, help: HELP_TEXT };
+    }
     if (!parsed.values.to) {
       return { ok: false, error: 'Missing required --to / -t option for convert command', help: HELP_TEXT };
     }
+    const toFormat = parsed.values.to.toLowerCase() === 'show' ? 'freeshow' : parsed.values.to;
     return {
       ok: true,
       command: {
         kind: 'convert',
         input: first,
-        to: parsed.values.to,
+        to: toFormat,
         ...(parsed.values.out !== undefined ? { out: parsed.values.out } : {}),
         force: Boolean(parsed.values.force),
         strict: Boolean(parsed.values.strict),

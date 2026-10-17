@@ -172,6 +172,14 @@ describe('CLI argument parsing', () => {
         command: { kind: 'formats', json: true },
       });
     });
+
+    it('rejects unexpected positional arguments', () => {
+      const res = parseCliArgs(['formats', 'extra']);
+      expect(res.ok).toBe(false);
+      if (!res.ok) {
+        expect(res.error).toBe('Unexpected argument: "extra"');
+      }
+    });
   });
 
   describe('inspect command', () => {
@@ -189,6 +197,14 @@ describe('CLI argument parsing', () => {
         ok: true,
         command: { kind: 'inspect', input: 'song.pro', json: true },
       });
+    });
+
+    it('rejects extra positional arguments', () => {
+      const res = parseCliArgs(['inspect', 'song.pro', 'extra.pro']);
+      expect(res.ok).toBe(false);
+      if (!res.ok) {
+        expect(res.error).toBe('Unexpected argument: "extra.pro"');
+      }
     });
 
     it('fails when inspect is missing input file', () => {
@@ -287,6 +303,22 @@ describe('CLI argument parsing', () => {
         expect(res.error).toMatch(/--to|-t/i);
       }
     });
+
+    it('rejects extra positional arguments with subcommand', () => {
+      const res = parseCliArgs(['convert', 'a.vpc', 'b.vpc', '-t', 'pro']);
+      expect(res.ok).toBe(false);
+      if (!res.ok) {
+        expect(res.error).toBe('Unexpected argument: "b.vpc"');
+      }
+    });
+
+    it('normalizes "show" target format to "freeshow"', () => {
+      const res = parseCliArgs(['convert', 'input.vpc', '-t', 'show']);
+      expect(res.ok).toBe(true);
+      if (res.ok && res.command.kind === 'convert') {
+        expect(res.command.to).toBe('freeshow');
+      }
+    });
   });
 
   describe('root shorthand conversion', () => {
@@ -319,6 +351,22 @@ describe('CLI argument parsing', () => {
           json: false,
         },
       });
+    });
+
+    it('rejects extra positional arguments in root shorthand', () => {
+      const res = parseCliArgs(['a.vpc', 'out.pro', '-t', 'pro']);
+      expect(res.ok).toBe(false);
+      if (!res.ok) {
+        expect(res.error).toBe('Unexpected argument: "out.pro"');
+      }
+    });
+
+    it('normalizes "show" target format to "freeshow" in shorthand', () => {
+      const res = parseCliArgs(['input.vpc', '-t', 'show']);
+      expect(res.ok).toBe(true);
+      if (res.ok && res.command.kind === 'convert') {
+        expect(res.command.to).toBe('freeshow');
+      }
     });
   });
 

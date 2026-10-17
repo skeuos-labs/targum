@@ -26,12 +26,17 @@ export interface ConvertCommandOptions {
 }
 
 export async function executeConvertCommand(
-  options: ConvertCommandOptions,
+  rawOptions: ConvertCommandOptions,
 ): Promise<{
   exitCode: number;
   stdout: string;
   stderr: string;
 }> {
+  const options: ConvertCommandOptions = {
+    ...rawOptions,
+    to: rawOptions.to.toLowerCase() === 'show' ? 'freeshow' : rawOptions.to,
+  };
+
   if (!fs.existsSync(options.input)) {
     return {
       exitCode: 3,

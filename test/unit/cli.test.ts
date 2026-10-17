@@ -106,6 +106,14 @@ describe('CLI Binary End-to-End Suite', () => {
     expect(res.stdout).toContain(outFile);
   });
 
+  it('converts presentation using "show" alias for freeshow format and writes .show file', () => {
+    const outFile = path.resolve(TMP_DIR, 'e2e.show');
+    const res = runCli([IZY_PRO, '-t', 'show', '-o', outFile, '-f']);
+    expect(res.status).toBe(0);
+    expect(fs.existsSync(outFile)).toBe(true);
+    expect(res.stdout).toContain(outFile);
+  });
+
   it('exits with code 3 when input file does not exist', () => {
     const res = runCli(['inspect', 'missing-presentation-file.pro']);
     expect(res.status).toBe(3);
@@ -166,5 +174,23 @@ describe('CLI Binary End-to-End Suite', () => {
     const res = runCli([FACADE_VPC, '-t', 'pro', '--song', 'mendrika', '-o', outFile, '-f']);
     expect(res.status).toBe(0);
     expect(fs.existsSync(outFile)).toBe(true);
+  });
+
+  it('exits with code 3 when extra positional arguments are passed', () => {
+    const resFormats = runCli(['formats', 'extra']);
+    expect(resFormats.status).toBe(3);
+    expect(resFormats.stderr).toContain('Unexpected argument: "extra"');
+
+    const resInspect = runCli(['inspect', IZY_PRO, 'extra.pro']);
+    expect(resInspect.status).toBe(3);
+    expect(resInspect.stderr).toContain('Unexpected argument: "extra.pro"');
+
+    const resConvert = runCli(['convert', IZY_PRO, 'extra.pro', '-t', 'vpc']);
+    expect(resConvert.status).toBe(3);
+    expect(resConvert.stderr).toContain('Unexpected argument: "extra.pro"');
+
+    const resShorthand = runCli([IZY_PRO, 'extra.pro', '-t', 'vpc']);
+    expect(resShorthand.status).toBe(3);
+    expect(resShorthand.stderr).toContain('Unexpected argument: "extra.pro"');
   });
 });
