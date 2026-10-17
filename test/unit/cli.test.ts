@@ -112,6 +112,22 @@ describe('CLI Binary End-to-End Suite', () => {
     expect(res.stderr).toContain('not found');
   });
 
+  it('exits with code 3 when converting without -f if output file already exists', () => {
+    const outFile = path.resolve(TMP_DIR, 'existing-output.vpc');
+    fs.writeFileSync(outFile, 'pre-existing content');
+    const res = runCli(['convert', IZY_PRO, '-t', 'vpc', '-o', outFile]);
+    expect(res.status).toBe(3);
+    expect(res.stderr).toContain(`Output file already exists: ${outFile}. Use --force / -f to overwrite.`);
+  });
+
+  it('exits with code 1 when --strict is passed on a file with formatting warnings', () => {
+    const outFile = path.resolve(TMP_DIR, 'strict-warning.vpc');
+    const res = runCli(['convert', IZY_PRO, '-t', 'vpc', '-o', outFile, '--strict', '-f']);
+    expect(res.status).toBe(1);
+    expect(fs.existsSync(outFile)).toBe(true);
+    expect(res.stderr).toContain('VPC_TAG_UNMAPPED');
+  });
+
   it('exits with code 3 when required -t flag is missing in convert', () => {
     const res = runCli(['convert', IZY_PRO]);
     expect(res.status).toBe(3);

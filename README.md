@@ -1,6 +1,6 @@
 # Show Converter Engine
 
-Pure TypeScript conversion engine for worship presentations and church lyrics. Mediates conversions across formats using an intermediate canonical model without UI or desktop framework dependencies.
+Pure TypeScript conversion engine and CLI utility for worship presentations and church lyrics. Mediates conversions across formats using an intermediate canonical model without UI or desktop framework dependencies.
 
 ---
 
@@ -15,6 +15,192 @@ Pure TypeScript conversion engine for worship presentations and church lyrics. M
 | **FreeShow** | `.show` | Yes | Yes | Yes | Clean-room JSON format codec, layout groups, multi-song |
 | **Plain Text** | `.txt` | Yes | Yes | Single | Section markers (`[Verse 1]`, `[Chorus]`), blank-line slide breaks |
 | **PowerPoint** | `.pptx` | Yes | Yes | Single | Text-only OpenXML presentation package, 16:9 widescreen |
+
+---
+
+## CLI Usage
+
+The package ships with an executable binary `show-converter` (Node.js 20+ zero external CLI dependencies using native `node:util.parseArgs`).
+
+### Quick Start via `npx` or Global Install
+
+```bash
+# Run directly via npx without local installation
+npx show-converter --help
+
+# Or install globally
+npm install -g show-converter-engine
+show-converter --help
+```
+
+### 1. List Supported Formats (`formats`)
+
+List all supported formats, extensions, and import/export capabilities:
+
+```bash
+show-converter formats
+```
+
+Sample output:
+```text
+Format ID  Format Name      Extensions  Import  Export
+---------  ---------------  ----------  ------  ------
+pro        ProPresenter 7+  .pro        Yes     Yes   
+pro6       ProPresenter 6   .pro6       Yes     No    
+vpc        VideoPsalm VPC   .vpc        Yes     Yes   
+json       VideoPsalm JSON  .json       Yes     No    
+freeshow   FreeShow         .show       Yes     Yes   
+txt        Plain Text       .txt        Yes     Yes   
+pptx       PowerPoint       .pptx       Yes     Yes   
+```
+
+For programmatic pipelines, pass `--json` to emit a parseable JSON array:
+```bash
+show-converter formats --json
+```
+
+Sample output:
+```json
+[
+  {
+    "id": "pro",
+    "name": "ProPresenter 7+",
+    "extensions": [".pro"],
+    "canImport": true,
+    "canExport": true,
+    "supportsMultiSong": false
+  },
+  ...
+]
+```
+
+---
+
+### 2. Inspect Presentations (`inspect`)
+
+Inspect the canonical presentation structure, metadata, slide counts, section layouts, and import warnings:
+
+```bash
+show-converter inspect WorshipSong.pro
+```
+
+Sample output:
+```text
+File: WorshipSong.pro
+Format: ProPresenter 7+ (pro)
+Presentations: 1
+
+--- Presentation 1: Amazing Grace ---
+Title: Amazing Grace
+Author: John Newton
+CCLI: 27136
+Copyright: Public Domain
+Total Slides: 4
+Sections (2):
+  - Verse 1: 2 slides
+  - Verse 2: 2 slides
+```
+
+Dump the raw intermediate canonical `Library` representation as formatted JSON:
+```bash
+show-converter inspect WorshipSong.pro --json
+```
+
+---
+
+### 3. Convert Presentations (`convert`)
+
+Convert presentation files from any supported source format to any exportable target format:
+
+```bash
+show-converter convert <input> -t <format> [-o <out>] [-f] [--strict] [--song <id>] [--split <dir>] [--json]
+```
+
+#### Options Reference
+
+| Flag | Description |
+|---|---|
+| `-t, --to <format>` | **Required.** Target format ID: `pro`, `vpc`, `freeshow`, `txt`, `pptx`. |
+| `-o, --out <path>` | Destination file or directory path. Defaults to `./<input-basename>.<ext>`. |
+| `-f, --force` | Overwrite existing output file (otherwise exits with code 3). |
+| `--strict` | Strict mode: treat non-fatal formatting warnings as errors (exit code 1). |
+| `--song <index\|title>` | Select single song from multi-song container (1-based index or title substring). |
+| `--split <dir>` | Unpack multi-song container into separate files inside `<dir>`. |
+| `--json` | Output structured conversion summary on `stdout`. |
+
+#### Root Shorthand
+
+The `convert` subcommand is the default action and may be omitted:
+
+```bash
+# Equivalent to: show-converter convert WorshipSong.pro -t vpc
+show-converter WorshipSong.pro -t vpc
+
+# Specify destination file path
+show-converter WorshipSong.pro -t txt -o ./lyrics/WorshipSong.txt
+
+# Target existing directory (resolves to ./dist/WorshipSong.pptx)
+show-converter WorshipSong.pro -t pptx -o ./dist/ -f
+```
+
+---
+
+### 4. Multi-Song Safety (`--split` and `--song`)
+
+Songbook archives (such as VideoPsalm `.vpc` or FreeShow `.show`) frequently contain dozens or hundreds of songs. Formats such as ProPresenter 7 (`.pro`), Plain Text (`.txt`), and PowerPoint (`.pptx`) only hold a single presentation per file.
+
+To prevent silent data loss, `show-converter` **fails closed** with exit code `2` if a multi-song source is converted to a single-song target without unpacking instructions:
+
+```bash
+# Fails with exit code 2:
+show-converter Hymnal.vpc -t pro
+# Error: Input "Hymnal.vpc" contains 274 songs, but target format "pro" only supports 1 song per file.
+# Use --split <dir> to unpack all songs or --song <index|title> to convert one.
+```
+
+#### Option A: Unpack All Songs with `--split`
+Unpacks every song into a distinct file within the specified directory. Song titles are automatically sanitized for file systems, and duplicate names receive numeric disambiguation (`Title (2).pro`):
+
+```bash
+show-converter Hymnal.vpc -t pro --split ./pro-library/
+```
+
+#### Option B: Extract a Single Song with `--song`
+Extract a single song by its 1-based index or case-insensitive title search:
+
+```bash
+# Select by 1-based index
+show-converter Hymnal.vpc -t pro --song 1 -o ./FirstSong.pro
+
+# Select by title substring (case-insensitive)
+show-converter Hymnal.vpc -t pro --song "amazing grace" -o ./Grace.pro
+```
+
+---
+
+### 5. Exit Codes
+
+`show-converter` uses deterministic exit codes for shell scripts and CI/CD pipelines:
+
+| Exit Code | Classification | Trigger Condition |
+|:---:|---|---|
+| **`0`** | **Success** | Operation completed successfully. Non-fatal warnings (if any) printed to `stderr`. |
+| **`1`** | **Warning (Strict)** | Conversion succeeded, but non-fatal fidelity warnings occurred while `--strict` was active. Output file is still written. |
+| **`2`** | **Engine / Conversion Error** | Import failure, corrupted archive, unsupported codec operation, or multi-song collision without `--split`/`--song`. |
+| **`3`** | **CLI / User Error** | Invalid or missing arguments, missing input file, unexportable format ID, or output file already exists without `-f`. |
+
+---
+
+### 6. Streaming Discipline (`stdout` vs `stderr`)
+
+The CLI strictly separates machine-readable data from human diagnostics:
+- **`stdout`:** Dedicated exclusively to successful outputs. Emits either the path of the created file, the human-readable summary, or raw JSON when `--json` is passed. Safe for piping into `jq`, file redirects (`>`), or downstream scripts.
+- **`stderr`:** Reserved for error messages (`[ERROR]`), user warnings, and non-fatal conversion diagnostics (`[WARN]`, `[INFO]`).
+
+Example piping JSON output directly into `jq`:
+```bash
+show-converter formats --json | jq '.[].id'
+```
 
 ---
 
@@ -39,7 +225,7 @@ Compiled output emits to `./dist`.
 ```bash
 npm test
 ```
-Runs Vitest across 14 test suites covering codecs, round-trip matrix, and real-world sample corpus.
+Runs Vitest across 17 test suites (330 tests) covering codecs, CLI commands, round-trip matrix, and real-world sample corpus. Pretest automatically rebuilds TypeScript.
 
 ---
 
