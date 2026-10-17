@@ -82,6 +82,7 @@ export async function executeInspectCommand(options: InspectCommandOptions): Pro
     lines.push(`Title: ${pres.title || 'Untitled'}`);
     lines.push(`Author: ${pres.metadata.author ?? 'N/A'}`);
     lines.push(`CCLI: ${pres.metadata.ccli ?? 'N/A'}`);
+    lines.push(`Copyright: ${pres.metadata.copyright ?? 'N/A'}`);
     lines.push(`Total Slides: ${pres.slides.length}`);
 
     if (pres.sections.length === 0) {
