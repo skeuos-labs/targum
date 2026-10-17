@@ -73,6 +73,7 @@ describe('ProPresenter 7 Protobuf Writer', () => {
 
       // Fill & stroke
       expect(element.fill.color.alpha).toBe(1);
+      expect(element.stroke.enable).toBe(false);
       expect(element.stroke.color.red).toBe(1);
       expect(element.stroke.color.green).toBe(1);
       expect(element.stroke.color.blue).toBe(1);

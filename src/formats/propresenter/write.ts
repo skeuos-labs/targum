@@ -108,7 +108,7 @@ export function writePro(presentation: CanonicalPresentation): WriteProResult {
                         color: { alpha: 1 },
                       },
                       stroke: {
-                        enable: true,
+                        enable: false,
                         color: { red: 1, green: 1, blue: 1, alpha: 1 },
                       },
                       text: {
