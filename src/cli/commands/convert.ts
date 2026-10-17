@@ -103,6 +103,11 @@ export async function executeConvertCommand(
       matchedPres = library.presentations.find(
         (p) => (p.title || '').trim().toLowerCase() === lower,
       );
+      if (!matchedPres) {
+        matchedPres = library.presentations.find((p) =>
+          (p.title || '').toLowerCase().includes(lower),
+        );
+      }
     }
 
     if (!matchedPres) {
@@ -204,12 +209,24 @@ export async function executeConvertCommand(
   }
 
   const ext = targetFormat.extensions[0] ?? `.${targetFormat.id}`;
+  const parsed = path.parse(options.input);
+  const defaultFileName = `${parsed.name}${ext}`;
   let outputPath: string;
   if (options.out) {
-    outputPath = path.resolve(options.out);
+    const resolvedOut = path.resolve(options.out);
+    let isDir = false;
+    try {
+      isDir = fs.existsSync(resolvedOut) && fs.statSync(resolvedOut).isDirectory();
+    } catch {
+      isDir = false;
+    }
+    if (isDir) {
+      outputPath = path.resolve(resolvedOut, defaultFileName);
+    } else {
+      outputPath = resolvedOut;
+    }
   } else {
-    const parsed = path.parse(options.input);
-    outputPath = path.resolve(parsed.dir, `${parsed.name}${ext}`);
+    outputPath = path.resolve(process.cwd(), defaultFileName);
   }
 
   if (

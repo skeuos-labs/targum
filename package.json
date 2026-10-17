@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "license": "MIT",
   "type": "module",
+  "bin": {
+    "show-converter": "./dist/cli/index.js"
+  },
   "scripts": {
     "build": "tsc",
     "test": "vitest run"

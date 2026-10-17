@@ -74,3 +74,30 @@ export {
   AMAZING_GRACE,
   createAmazingGracePresentation,
 } from './fixtures/amazing-grace.js';
+
+// CLI
+export {
+  parseCliArgs,
+  HELP_TEXT,
+  type CliCommand,
+  type CliParsedCommand,
+  type CliParsedResult,
+} from './cli/args.js';
+export {
+  sanitizeFileName,
+  disambiguateFileName,
+  formatCliWarning,
+} from './cli/utils.js';
+export {
+  executeFormatsCommand,
+  type FormatsCommandOptions,
+} from './cli/commands/formats.js';
+export {
+  executeInspectCommand,
+  type InspectCommandOptions,
+} from './cli/commands/inspect.js';
+export {
+  executeConvertCommand,
+  type ConvertCommandOptions,
+} from './cli/commands/convert.js';
+
