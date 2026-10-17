@@ -1,0 +1,342 @@
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { parseCliArgs, type CliCommand } from '../../src/cli/args.js';
+import {
+  disambiguateFileName,
+  formatCliWarning,
+  sanitizeFileName,
+} from '../../src/cli/utils.js';
+
+describe('Filename sanitization & utilities', () => {
+  describe('sanitizeFileName', () => {
+    it('preserves clean filenames', () => {
+      expect(sanitizeFileName('Amazing Grace')).toBe('Amazing Grace');
+      expect(sanitizeFileName('Song 123')).toBe('Song 123');
+      expect(sanitizeFileName('Holy, Holy, Holy')).toBe('Holy, Holy, Holy');
+    });
+
+    it('strips illegal filename characters', () => {
+      // [/\\:*?"<>|]
+      expect(sanitizeFileName('Song/With\\Slash:Colon*Star?Question"Quote<Less>Greater|Pipe')).toBe(
+        'SongWithSlashColonStarQuestionQuoteLessGreaterPipe',
+      );
+    });
+
+    it('strips control characters', () => {
+      expect(sanitizeFileName('Title\u0000With\u001fControl\u007fChars')).toBe(
+        'TitleWithControlChars',
+      );
+    });
+
+    it('trims leading and trailing spaces and dots', () => {
+      expect(sanitizeFileName('  .My Song Title.  ')).toBe('My Song Title');
+      expect(sanitizeFileName('...Another Song...')).toBe('Another Song');
+      expect(sanitizeFileName('  Song.With.Dots  ')).toBe('Song.With.Dots');
+    });
+
+    it('falls back to "untitled" when sanitized string is empty', () => {
+      expect(sanitizeFileName('')).toBe('untitled');
+      expect(sanitizeFileName('   ')).toBe('untitled');
+      expect(sanitizeFileName('...')).toBe('untitled');
+      expect(sanitizeFileName(':::???*')).toBe('untitled');
+      expect(sanitizeFileName('  /\\*?  ')).toBe('untitled');
+    });
+  });
+
+  describe('disambiguateFileName', () => {
+    let tmpDir: string;
+
+    beforeEach(() => {
+      tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sc-disambiguate-'));
+    });
+
+    afterEach(() => {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    });
+
+    it('returns direct path when target does not exist', () => {
+      const result = disambiguateFileName(tmpDir, 'Song', '.pro');
+      expect(result).toBe(path.resolve(tmpDir, 'Song.pro'));
+    });
+
+    it('handles extension without leading dot', () => {
+      const result = disambiguateFileName(tmpDir, 'Song', 'pro');
+      expect(result).toBe(path.resolve(tmpDir, 'Song.pro'));
+    });
+
+    it('appends sequential counter (2) when file exists', () => {
+      fs.writeFileSync(path.join(tmpDir, 'Song.pro'), 'data');
+
+      const result = disambiguateFileName(tmpDir, 'Song', '.pro');
+      expect(result).toBe(path.resolve(tmpDir, 'Song (2).pro'));
+    });
+
+    it('appends sequential counter (3) when (2) also exists', () => {
+      fs.writeFileSync(path.join(tmpDir, 'Song.pro'), 'data');
+      fs.writeFileSync(path.join(tmpDir, 'Song (2).pro'), 'data');
+
+      const result = disambiguateFileName(tmpDir, 'Song', '.pro');
+      expect(result).toBe(path.resolve(tmpDir, 'Song (3).pro'));
+    });
+  });
+
+  describe('formatCliWarning', () => {
+    it('formats warning message with uppercase severity and code', () => {
+      const formatted = formatCliWarning({
+        code: 'VPC_TAG_UNMAPPED',
+        severity: 'warn',
+        message: 'Unmapped tag detected',
+      });
+      expect(formatted).toBe('[WARN] (VPC_TAG_UNMAPPED) Unmapped tag detected');
+    });
+
+    it('formats info severity warning', () => {
+      const formatted = formatCliWarning({
+        code: 'INFO_CODE',
+        severity: 'info',
+        message: 'Informational message',
+      });
+      expect(formatted).toBe('[INFO] (INFO_CODE) Informational message');
+    });
+
+    it('formats error severity warning', () => {
+      const formatted = formatCliWarning({
+        code: 'ERR_CODE',
+        severity: 'error',
+        message: 'Error message',
+      });
+      expect(formatted).toBe('[ERROR] (ERR_CODE) Error message');
+    });
+  });
+});
+
+describe('CLI argument parsing', () => {
+  describe('help command', () => {
+    it('handles --help flag', () => {
+      const res = parseCliArgs(['--help']);
+      expect(res.ok).toBe(true);
+      if (res.ok) {
+        expect(res.command.kind).toBe('help');
+        expect(res.command.text).toContain('Usage:');
+      }
+    });
+
+    it('handles -h flag', () => {
+      const res = parseCliArgs(['-h']);
+      expect(res.ok).toBe(true);
+      if (res.ok) {
+        expect(res.command.kind).toBe('help');
+      }
+    });
+
+    it('handles help subcommand', () => {
+      const res = parseCliArgs(['help']);
+      expect(res.ok).toBe(true);
+      if (res.ok) {
+        expect(res.command.kind).toBe('help');
+      }
+    });
+
+    it('defaults to help when no arguments provided', () => {
+      const res = parseCliArgs([]);
+      expect(res.ok).toBe(true);
+      if (res.ok) {
+        expect(res.command.kind).toBe('help');
+      }
+    });
+
+    it('handles --help alongside subcommands', () => {
+      const res = parseCliArgs(['convert', '--help']);
+      expect(res.ok).toBe(true);
+      if (res.ok) {
+        expect(res.command.kind).toBe('help');
+      }
+    });
+  });
+
+  describe('formats command', () => {
+    it('parses formats subcommand without flags', () => {
+      const res = parseCliArgs(['formats']);
+      expect(res).toEqual({
+        ok: true,
+        command: { kind: 'formats', json: false },
+      });
+    });
+
+    it('parses formats subcommand with --json', () => {
+      const res = parseCliArgs(['formats', '--json']);
+      expect(res).toEqual({
+        ok: true,
+        command: { kind: 'formats', json: true },
+      });
+    });
+  });
+
+  describe('inspect command', () => {
+    it('parses inspect subcommand with input file', () => {
+      const res = parseCliArgs(['inspect', 'song.pro']);
+      expect(res).toEqual({
+        ok: true,
+        command: { kind: 'inspect', input: 'song.pro', json: false },
+      });
+    });
+
+    it('parses inspect subcommand with --json flag', () => {
+      const res = parseCliArgs(['inspect', 'song.pro', '--json']);
+      expect(res).toEqual({
+        ok: true,
+        command: { kind: 'inspect', input: 'song.pro', json: true },
+      });
+    });
+
+    it('fails when inspect is missing input file', () => {
+      const res = parseCliArgs(['inspect']);
+      expect(res.ok).toBe(false);
+      if (!res.ok) {
+        expect(res.error).toMatch(/input file/i);
+      }
+    });
+  });
+
+  describe('convert command', () => {
+    it('parses convert subcommand with required flags', () => {
+      const res = parseCliArgs(['convert', 'input.vpc', '-t', 'pro']);
+      expect(res).toEqual({
+        ok: true,
+        command: {
+          kind: 'convert',
+          input: 'input.vpc',
+          to: 'pro',
+          force: false,
+          strict: false,
+          json: false,
+        },
+      });
+    });
+
+    it('parses all convert options with long flags', () => {
+      const res = parseCliArgs([
+        'convert',
+        'input.vpc',
+        '--to',
+        'pro',
+        '--out',
+        'output.pro',
+        '--force',
+        '--strict',
+        '--song',
+        '1',
+        '--split',
+        'output-dir',
+        '--json',
+      ]);
+      expect(res).toEqual({
+        ok: true,
+        command: {
+          kind: 'convert',
+          input: 'input.vpc',
+          to: 'pro',
+          out: 'output.pro',
+          force: true,
+          strict: true,
+          song: '1',
+          split: 'output-dir',
+          json: true,
+        },
+      });
+    });
+
+    it('parses all convert options with short flags', () => {
+      const res = parseCliArgs([
+        'convert',
+        'input.vpc',
+        '-t',
+        'pro',
+        '-o',
+        'output.pro',
+        '-f',
+      ]);
+      expect(res).toEqual({
+        ok: true,
+        command: {
+          kind: 'convert',
+          input: 'input.vpc',
+          to: 'pro',
+          out: 'output.pro',
+          force: true,
+          strict: false,
+          json: false,
+        },
+      });
+    });
+
+    it('fails when convert is missing input file', () => {
+      const res = parseCliArgs(['convert']);
+      expect(res.ok).toBe(false);
+      if (!res.ok) {
+        expect(res.error).toMatch(/input file/i);
+      }
+    });
+
+    it('fails when convert is missing -t / --to flag', () => {
+      const res = parseCliArgs(['convert', 'input.vpc']);
+      expect(res.ok).toBe(false);
+      if (!res.ok) {
+        expect(res.error).toMatch(/--to|-t/i);
+      }
+    });
+  });
+
+  describe('root shorthand conversion', () => {
+    it('parses input and -t as default convert command', () => {
+      const res = parseCliArgs(['input.vpc', '-t', 'pro']);
+      expect(res).toEqual({
+        ok: true,
+        command: {
+          kind: 'convert',
+          input: 'input.vpc',
+          to: 'pro',
+          force: false,
+          strict: false,
+          json: false,
+        },
+      });
+    });
+
+    it('parses shorthand with --to and other flags', () => {
+      const res = parseCliArgs(['input.vpc', '--to', 'txt', '-o', 'out.txt', '-f', '--strict']);
+      expect(res).toEqual({
+        ok: true,
+        command: {
+          kind: 'convert',
+          input: 'input.vpc',
+          to: 'txt',
+          out: 'out.txt',
+          force: true,
+          strict: true,
+          json: false,
+        },
+      });
+    });
+  });
+
+  describe('error handling', () => {
+    it('fails on unknown command', () => {
+      const res = parseCliArgs(['unknown-command']);
+      expect(res.ok).toBe(false);
+      if (!res.ok) {
+        expect(res.error).toMatch(/unknown command/i);
+      }
+    });
+
+    it('fails on unknown option', () => {
+      const res = parseCliArgs(['formats', '--unrecognized-flag']);
+      expect(res.ok).toBe(false);
+      if (!res.ok) {
+        expect(res.error).toMatch(/unknown option/i);
+      }
+    });
+  });
+});
