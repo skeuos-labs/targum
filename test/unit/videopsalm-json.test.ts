@@ -426,7 +426,7 @@ describe('VideoPsalm JSON Dialect Codec', () => {
   describe('Real fixture asset verification', () => {
     const cevamPath = resolve(
       import.meta.dirname,
-      '../../audit-output/temp-verify/runs/vpc-to-txt/Cevam/Cevam/Cevam.json'
+      '../../../audit-output/temp-verify/runs/vpc-to-txt/Cevam/Cevam/Cevam.json'
     );
 
     it('parses real Cevam.json if fixture exists', () => {

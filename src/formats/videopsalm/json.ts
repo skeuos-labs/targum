@@ -78,8 +78,7 @@ export function serializeDialect(value: unknown): string {
     return Number.isFinite(value) ? String(value) : 'null';
   }
   if (typeof value === 'string') {
-    const escaped = value.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-    return `"${escaped}"`;
+    return JSON.stringify(value);
   }
   if (Array.isArray(value)) {
     return `[${value.map((item) => serializeDialect(item)).join(',')}]`;
