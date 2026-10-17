@@ -6,6 +6,7 @@ import {
   MetadataSchema,
   parsePresentation,
   PresentationSchema,
+  pruneDanglingReferences,
   randomUUID,
   RichTextRunSchema,
   richTextToPlain,
@@ -335,6 +336,39 @@ describe('Canonical Normalization & Reference Validation', () => {
     expect(result.value.warnings.some((w) => w.code === 'SECTION_DANGLING_SLIDE')).toBe(
       true,
     );
+  });
+
+  it('pruneDanglingReferences filters missing slide IDs from sections and arrangements', () => {
+    const p: Presentation = {
+      id: 'p-1',
+      title: 'Pruning Test',
+      sourceFormat: 'pro',
+      metadata: {},
+      sections: [
+        {
+          id: 'sec-1',
+          name: 'Verse 1',
+          slideIds: ['s-1', 's-missing-1', 's-2'],
+        },
+      ],
+      arrangements: [
+        {
+          id: 'arr-1',
+          name: 'Standard',
+          slideIds: ['s-missing-2', 's-1', 's-missing-3'],
+        },
+      ],
+      slides: [
+        { id: 's-1', items: [] },
+        { id: 's-2', items: [] },
+      ],
+      warnings: [],
+    };
+
+    const pruned = pruneDanglingReferences(p);
+    expect(pruned.sections[0]?.slideIds).toEqual(['s-1', 's-2']);
+    expect(pruned.arrangements[0]?.slideIds).toEqual(['s-1']);
+    expect(validateReferences(pruned)).toHaveLength(0);
   });
 
   it('parsePresentation returns ok: false and ZodError on schema mismatch', () => {
