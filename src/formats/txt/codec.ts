@@ -35,11 +35,17 @@ function matchSectionHeader(rawLine: string): string | null {
   const trimmed = rawLine.trim();
   const bracketMatch = SECTION_MARKER.exec(trimmed);
   if (bracketMatch) {
-    return bracketMatch[1]!.trim();
+    const name = bracketMatch[1]!.trim();
+    if (name.length > 0) {
+      return name;
+    }
   }
   const colonMatch = COLON_MARKER.exec(trimmed);
   if (colonMatch) {
-    return colonMatch[1]!.trim();
+    const name = colonMatch[1]!.trim();
+    if (name.length > 0) {
+      return name;
+    }
   }
   return null;
 }
@@ -106,8 +112,8 @@ export function parseTxt(bytes: Uint8Array, fileName?: string): ParseTxtResult {
       const hasMarkersAfter = remainingLines.some(
         (l) => matchSectionHeader(l) !== null
       );
-      const hasBlankAfter = remainingLines.some((l) => l.trim() === '');
-      if (hasMarkersAfter || hasBlankAfter) {
+      const isNextLineBlank = lines[firstNonEmptyIdx + 1]?.trim() === '';
+      if (hasMarkersAfter || isNextLineBlank) {
         title = firstLine;
         startLineIdx = firstNonEmptyIdx + 1;
       }
@@ -205,12 +211,12 @@ export function parseTxt(bytes: Uint8Array, fileName?: string): ParseTxtResult {
     sectionList.push(current);
   }
 
-  // Drop leading empty "Verse" when an explicitly markered section followed
+  // Drop leading implicit empty "Verse" when an explicitly markered section followed
   const filtered = sectionList.filter(
     (s, i) =>
       !(
         i === 0 &&
-        s.name === 'Verse' &&
+        !s.startedByMarker &&
         s.slides.length === 0 &&
         sectionList.length > 1
       )

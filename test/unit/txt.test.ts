@@ -116,6 +116,22 @@ describe('TXT Lyric Marker Codec', () => {
       expect(song.title).toBe('MyTrack');
       expect(song.sections.map((s) => s.name)).toEqual(['Verse 1']);
     });
+
+    it('rejects whitespace-only marker [   ] as section header', () => {
+      const text = [
+        'Title',
+        '',
+        '[   ]',
+        'Slide 1',
+      ].join('\n');
+
+      const res = parseTxt(new TextEncoder().encode(text), 'test.txt');
+      expect(res.ok).toBe(true);
+      if (!res.ok) return;
+
+      const song = res.value.presentations[0]!;
+      expect(song.sections[0]!.name).toBe('Verse');
+    });
   });
 
   describe('parseTxt: Blank line slide splitting', () => {
@@ -157,6 +173,29 @@ describe('TXT Lyric Marker Codec', () => {
       expect(song.slides).toHaveLength(2);
       expect(song.slides[0]!.items[0]!.plainText).toBe('Slide A');
       expect(song.slides[1]!.items[0]!.plainText).toBe('Slide B');
+    });
+
+    it('does not eat line 1 as title in multiline markerless files', () => {
+      const text = [
+        'Verse 1 line 1',
+        'Verse 1 line 2',
+        '',
+        'Verse 1 slide 2',
+      ].join('\n');
+
+      const res = parseTxt(new TextEncoder().encode(text), 'Song.txt');
+      expect(res.ok).toBe(true);
+      if (!res.ok) return;
+
+      const song = res.value.presentations[0]!;
+      expect(song.title).toBe('Song');
+      expect(song.sections).toHaveLength(1);
+      expect(song.sections[0]!.name).toBe('Verse');
+      expect(song.slides).toHaveLength(2);
+      expect(song.slides[0]!.items[0]!.plainText).toBe(
+        'Verse 1 line 1\nVerse 1 line 2'
+      );
+      expect(song.slides[1]!.items[0]!.plainText).toBe('Verse 1 slide 2');
     });
   });
 
@@ -203,6 +242,25 @@ describe('TXT Lyric Marker Codec', () => {
       const bridge = song.sections.find((s) => s.name === 'Bridge')!;
       expect(bridge.slideIds).toHaveLength(1);
     });
+
+    it('preserves empty [Verse] section when explicitly started by marker', () => {
+      const text = [
+        '[Verse]',
+        '[Chorus]',
+        'Some lyrics',
+      ].join('\n');
+
+      const res = parseTxt(new TextEncoder().encode(text), 'test.txt');
+      expect(res.ok).toBe(true);
+      if (!res.ok) return;
+
+      const song = res.value.presentations[0]!;
+      expect(song.sections.map((s) => s.name)).toEqual(['Verse', 'Chorus']);
+      expect(song.sections[0]!.slideIds).toEqual([]);
+      expect(song.sections[1]!.slideIds).toHaveLength(1);
+      expect(song.slides).toHaveLength(1);
+      expect(song.slides[0]!.items[0]!.plainText).toBe('Some lyrics');
+    });
   });
 
   describe('writeTxt & AMAZING_GRACE Round-Trip', () => {
@@ -232,6 +290,11 @@ describe('TXT Lyric Marker Codec', () => {
 
       const p = parseRes.value.presentations[0]!;
       expect(p.title).toBe(AMAZING_GRACE.title);
+
+      // Metadata match
+      expect(p.metadata.author).toBe(AMAZING_GRACE.metadata.author);
+      expect(p.metadata.ccli).toBe(AMAZING_GRACE.metadata.ccli);
+      expect(p.metadata.copyright).toBe(AMAZING_GRACE.metadata.copyright);
 
       // Section markers match
       expect(p.sections.map((s) => s.name)).toEqual(
