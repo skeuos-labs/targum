@@ -342,3 +342,14 @@ export function decodeRtfBytes(bytes: Uint8Array): string {
   }
   return decodeRtf(text);
 }
+
+/**
+ * Detect style-affecting control words so importers can emit a single
+ * non-silent warning instead of pretending styles round-trip.
+ */
+export function rtfHasFormatting(rtf: string): boolean {
+  return /\\(?:strike|scaps|highlight|expndtw|expnd|ulnone|ul|outl|shad|cf\d+|fs\d+|[bi])(?![a-zA-Z])/.test(
+    rtf
+  );
+}
+
