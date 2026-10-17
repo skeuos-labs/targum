@@ -388,25 +388,25 @@ git commit -m "feat(videopsalm): implement VideoPsalm VPC AES-128 ZIP reader and
 **Interfaces:**
 - Produces: `parseFreeShow(bytes: Uint8Array, fileName?: string): Promise<Result<Library>>`, `writeFreeShow(library: Library): Promise<Result<{ bytes: Uint8Array, warnings: Warning[] }>>`.
 
-- [ ] **Step 1: Write failing tests for FreeShow import/export**
+- [x] **Step 1: Write failing tests for FreeShow import/export**
 
 Test clean-room JSON mapping: slides, groups -> sections, title, author. Test export of `AMAZING_GRACE` and round-trip parsing.
 
-- [ ] **Step 2: Run test to verify failure**
+- [x] **Step 2: Run test to verify failure**
 
 Run: `npx vitest run test/unit/freeshow.test.ts`
 Expected: FAIL.
 
-- [ ] **Step 3: Implement `src/formats/freeshow/codec.ts` and `index.ts`**
+- [x] **Step 3: Implement `src/formats/freeshow/codec.ts` and `index.ts`**
 
 Clean-room FreeShow `.show` format parser and generator.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run test/unit/freeshow.test.ts`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/formats/freeshow/ test/unit/freeshow.test.ts
@@ -425,25 +425,25 @@ git commit -m "feat(freeshow): implement clean-room FreeShow show codec"
 **Interfaces:**
 - Produces: `parseTxt(bytes: Uint8Array, fileName?: string): Result<Library>`, `writeTxt(library: Library): Result<{ bytes: Uint8Array, warnings: Warning[] }>`.
 
-- [ ] **Step 1: Write failing tests for TXT codec**
+- [x] **Step 1: Write failing tests for TXT codec**
 
 Test parsing `IZY.txt` from `assets-for-testing-purpose/`. Test marker syntax (`[Verse 1]`, `[Chorus]`), double-break slide splitting, and formatted text output.
 
-- [ ] **Step 2: Run test to verify failure**
+- [x] **Step 2: Run test to verify failure**
 
 Run: `npx vitest run test/unit/txt.test.ts`
 Expected: FAIL.
 
-- [ ] **Step 3: Implement `src/formats/txt/codec.ts` and `index.ts`**
+- [x] **Step 3: Implement `src/formats/txt/codec.ts` and `index.ts`**
 
 Parse lyrics text with section headers. Generate structured lyric files with metadata comments.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run test/unit/txt.test.ts`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/formats/txt/ test/unit/txt.test.ts
