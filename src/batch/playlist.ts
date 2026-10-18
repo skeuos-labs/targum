@@ -28,9 +28,8 @@ export function generateProPlaylist(
       type: 1,
       presentation: {
         documentPath: {
-          relativePath: p.relativePath,
+          relativePath: p.relativePath.replace(/\\/g, '/'),
         },
-        destination: 1,
         contentDestination: 1,
       },
     };

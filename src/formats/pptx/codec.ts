@@ -493,6 +493,8 @@ export async function parsePptx(
         hasTitleFmt: boolean;
       }
 
+      let anyFormatting = false;
+      let hasEmptySlide = false;
       const parsedSectionSlides: ParsedSectionSlide[] = [];
       for (const entry of sectionSlideEntries) {
         let slideXml = '';
@@ -531,7 +533,11 @@ export async function parsePptx(
         const paragraphLines = pList.map((p) =>
           extractParagraphText(p, hadStyleRef)
         );
+        anyFormatting ||= hadStyleRef.value;
         const slideText = paragraphLines.join('\n');
+        if (slideText.trim().length === 0) {
+          hasEmptySlide = true;
+        }
         const hasTitleFmt = checkSlideHasTitleFormatting(parsedSlide);
 
         parsedSectionSlides.push({
@@ -569,6 +575,7 @@ export async function parsePptx(
       }
 
       const sectionSlides: Slide[] = [];
+      const emptySlideWarnings: Warning[] = [];
       for (let i = 0; i < lyricSlideEntries.length; i++) {
         const sItem = lyricSlideEntries[i]!;
         const slideId = randomUUID();
@@ -577,11 +584,48 @@ export async function parsePptx(
             ? [{ type: 'text', plainText: sItem.slideText }]
             : [];
 
+        if (sItem.slideText.trim().length === 0) {
+          emptySlideWarnings.push(
+            warning(
+              'PPTX_EMPTY_SLIDE',
+              'warn',
+              `Slide ${i + 1} contains no text.`,
+              {
+                slideIndex: i,
+                slideNumber: i + 1,
+                entryName: sItem.entry.filename,
+              }
+            )
+          );
+        }
+
         sectionSlides.push({
           id: slideId,
           label: `Slide ${i + 1}`,
           items,
         });
+      }
+
+      const sectionWarnings: Warning[] = [];
+      if (anyFormatting) {
+        sectionWarnings.push(
+          warning(
+            'PPTX_STYLES_NOT_EXTRACTED',
+            'info',
+            'PowerPoint presentation contains text formatting (such as bold, italic, custom colors, or sizes) that was not extracted into canonical plain text.'
+          )
+        );
+      }
+      if (emptySlideWarnings.length > 0) {
+        sectionWarnings.push(...emptySlideWarnings);
+      } else if (hasEmptySlide) {
+        sectionWarnings.push(
+          warning(
+            'PPTX_EMPTY_SLIDE',
+            'warn',
+            'Slide contains no text.'
+          )
+        );
       }
 
       const presId = randomUUID();
@@ -608,7 +652,7 @@ export async function parsePptx(
           },
         ],
         slides: sectionSlides,
-        warnings: [],
+        warnings: sectionWarnings,
       };
 
       const validated = parsePresentation(candidate);
@@ -1321,7 +1365,7 @@ ${slideIdsXml}
     </a:lvl1pPr>
   </p:defaultTextStyle>
   <p:extLst>
-    <p:ext uri="{521415D9-36F7-43E2-8B97-042D7FB25576}">
+    <p:ext uri="{521415D9-36F7-43E2-AB2F-B90AF26B5E84}">
       <p14:sectionLst xmlns:p14="http://schemas.microsoft.com/office/powerpoint/2010/main">
 ${sectionsXml}
       </p14:sectionLst>

@@ -117,4 +117,25 @@ describe('ProPresenter .proplaylist Protobuf Generator', () => {
     expect(decoded.items.items[0].uuid?.string).toBeDefined();
     expect(decoded.items.items[0].uuid.string.length).toBeGreaterThan(0);
   });
+
+  it('normalizes backslashes to forward slashes in relativePath and omits dead destination field', () => {
+    const presentations: PlaylistPresentationEntry[] = [
+      {
+        title: 'Windows Path Song',
+        uuid: 'win-uuid-1234',
+        relativePath: 'Library\\SubFolder\\Song.pro',
+      },
+    ];
+
+    const bytes = generateProPlaylist('Path Normalization Service', presentations);
+    const PlaylistType = getProtoRoot().lookupType('Playlist');
+    const decoded = PlaylistType.decode(bytes) as any;
+
+    const presItem = decoded.items.items[0];
+    expect(presItem.presentation.documentPath?.relativePath).toBe(
+      'Library/SubFolder/Song.pro'
+    );
+    expect(presItem.presentation.contentDestination).toBe(1);
+    expect(presItem.presentation.destination).toBeUndefined();
+  });
 });

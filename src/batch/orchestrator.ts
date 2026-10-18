@@ -80,6 +80,14 @@ export async function batchConvert(
   const trackedPaths = new Set<string>();
   let totalSongs = 0;
 
+  const libDir = options.libraryName
+    ? path.resolve(options.outDir, options.libraryName)
+    : undefined;
+
+  if (libDir) {
+    await fs.promises.mkdir(libDir, { recursive: true });
+  }
+
   const accumulatedPresentations: Presentation[] = [];
   const accumulatedRefs: AccumulatedItemRef[] = [];
   const playlistEntries: PlaylistPresentationEntry[] = [];
@@ -103,7 +111,7 @@ export async function batchConvert(
       items.push({
         sourcePath,
         sourceFormat: 'unknown' as FormatId,
-        presentationTitle: 'unknown',
+        presentationTitle: path.parse(sourcePath).name || 'unknown',
         status: 'failed',
         warnings: [],
         error,
@@ -121,10 +129,13 @@ export async function batchConvert(
     const imported = await importFile(bytes, sourcePath);
     if (!imported.ok) {
       const error = imported.error;
+      const detected = detectFormat(sourcePath, bytes);
+      const fallbackFormat = (detected ?? 'unknown') as FormatId;
+      const fallbackTitle = path.parse(sourcePath).name || 'unknown';
       items.push({
         sourcePath,
-        sourceFormat: 'unknown' as FormatId,
-        presentationTitle: 'unknown',
+        sourceFormat: fallbackFormat,
+        presentationTitle: fallbackTitle,
         status: 'failed',
         warnings: [],
         error,
@@ -162,10 +173,7 @@ export async function batchConvert(
           warnings: importWarnings,
         });
         allSkipped = false;
-      } else if (options.libraryName) {
-        const libDir = path.resolve(options.outDir, options.libraryName);
-        await fs.promises.mkdir(libDir, { recursive: true });
-
+      } else if (options.libraryName && libDir) {
         const resolved = resolveOutputPath(
           libDir,
           presTitle,
@@ -363,22 +371,22 @@ export async function batchConvert(
         await fs.promises.writeFile(resolved.path, expRes.value.bytes);
         combinedOutputPath = resolved.path;
         const expWarnings = expRes.value.warnings ?? expRes.warnings ?? [];
-        for (const ref of accumulatedRefs) {
+        for (let i = 0; i < accumulatedRefs.length; i++) {
+          const ref = accumulatedRefs[i]!;
           items.push({
             sourcePath: ref.sourcePath,
             sourceFormat: ref.sourceFormat,
             presentationTitle: ref.pres.title || 'untitled',
             outputPath: resolved.path,
             status: 'success',
-            warnings: [...ref.warnings, ...expWarnings],
+            warnings: i === 0 ? [...ref.warnings, ...expWarnings] : [...ref.warnings],
           });
         }
       }
     }
   }
 
-  if (options.libraryName && playlistEntries.length > 0) {
-    const libDir = path.resolve(options.outDir, options.libraryName);
+  if (options.libraryName && libDir && playlistEntries.length > 0) {
     const playlistBytes = generateProPlaylist(options.libraryName, playlistEntries);
     const playlistPath = path.resolve(libDir, `${options.libraryName}.proplaylist`);
     await fs.promises.writeFile(playlistPath, playlistBytes);

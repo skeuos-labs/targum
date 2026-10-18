@@ -217,6 +217,31 @@ describe('Batch Orchestrator Engine (batchConvert)', () => {
         expect(parsed.value.presentations.length).toBe(2);
       }
     });
+
+    it('does not multiply export warnings across items in combined mode', async () => {
+      await createFixtureFiles();
+
+      const summary = await batchConvert({
+        inputs: [tempInputDir],
+        to: 'pptx',
+        outDir: tempOutputDir,
+        combine: true,
+        combineName: 'WarnCheck',
+      });
+
+      expect(summary.successCount).toBe(2);
+      expect(summary.items.length).toBe(2);
+
+      // In combined mode, export warnings must be attached once (to item 0)
+      // and not duplicated onto every subsequent item
+      const item0Warnings = summary.items[0]?.warnings ?? [];
+      const item1Warnings = summary.items[1]?.warnings ?? [];
+
+      // Item 0 receives import warnings + export warnings
+      // Item 1 only receives its own import warnings
+      const totalItemWarnings = item0Warnings.length + item1Warnings.length;
+      expect(summary.warningCount).toBe(totalItemWarnings);
+    });
   });
 
   describe('ProPresenter Library Mode (--libraryName)', () => {
@@ -280,6 +305,8 @@ describe('Batch Orchestrator Engine (batchConvert)', () => {
       const failedItem = summary.items.find((i) => i.status === 'failed');
       expect(failedItem).toBeDefined();
       expect(failedItem?.sourcePath).toBe(corruptFile);
+      expect(failedItem?.presentationTitle).toBe('corrupted');
+      expect(failedItem?.sourceFormat).toBe('pro');
       expect(failedItem?.error).toBeDefined();
 
       // Valid files converted successfully

@@ -88,9 +88,10 @@ describe('PowerPoint Multi-Song Sections and Title Slides', () => {
     const presXml = (await presentationEntry!.getData(new TextWriter())) as string;
     await zipReader.close();
 
-    // Verify p14:sectionLst structure
+    // Verify p14:sectionLst structure and official PowerPoint 2010 section extension GUID
     expect(presXml).toContain('p14:sectionLst');
     expect(presXml).toContain('xmlns:p14="http://schemas.microsoft.com/office/powerpoint/2010/main"');
+    expect(presXml).toContain('uri="{521415D9-36F7-43E2-AB2F-B90AF26B5E84}"');
     expect(presXml).toContain('name="Amazing Grace"');
     expect(presXml).toContain('name="How Great Thou Art"');
     expect(presXml).toMatch(/<p14:section\s+name="Amazing Grace"\s+id="\{[A-F0-9-]+\}"/i);
@@ -239,5 +240,48 @@ describe('PowerPoint Multi-Song Sections and Title Slides', () => {
     expect(presentations[1]!.title).toBe('Simple Song');
     expect(presentations[1]!.slides).toHaveLength(1);
     expect(presentations[1]!.slides[0]!.items[0]?.plainText).toBe('Line 1\nLine 2');
+  });
+
+  it('propagates PPTX_STYLES_NOT_EXTRACTED and PPTX_EMPTY_SLIDE warnings in multi-song parse', async () => {
+    const songWithEmpty = createMockSong(
+      'Hymn With Gap',
+      { author: 'Test Author' },
+      ['Verse 1 text', '']
+    );
+    const multiLibrary: Library = {
+      presentations: [song1, songWithEmpty],
+    };
+
+    const writeRes = await writePptx(multiLibrary);
+    expect(writeRes.ok).toBe(true);
+    if (!writeRes.ok) return;
+
+    const parseRes = await parsePptx(writeRes.bytes, 'ServiceWithEmpty.pptx');
+    expect(parseRes.ok).toBe(true);
+    if (!parseRes.ok) return;
+
+    // Library-level warnings
+    const styleWarn = parseRes.warnings.find(
+      (w) => w.code === 'PPTX_STYLES_NOT_EXTRACTED'
+    );
+    expect(styleWarn).toBeDefined();
+
+    const emptyWarn = parseRes.warnings.find(
+      (w) => w.code === 'PPTX_EMPTY_SLIDE'
+    );
+    expect(emptyWarn).toBeDefined();
+    expect(emptyWarn?.severity).toBe('warn');
+
+    // Candidate presentation-level warnings
+    const parsedHymn = parseRes.value.presentations.find(
+      (p) => p.title === 'Hymn With Gap'
+    );
+    expect(parsedHymn).toBeDefined();
+    expect(
+      parsedHymn?.warnings.some((w) => w.code === 'PPTX_EMPTY_SLIDE')
+    ).toBe(true);
+    expect(
+      parsedHymn?.warnings.some((w) => w.code === 'PPTX_STYLES_NOT_EXTRACTED')
+    ).toBe(true);
   });
 });
