@@ -8,7 +8,10 @@
   ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",
-    "test": "npm run test --workspaces --if-present"
+    "test": "npm run test --workspaces --if-present",
+    "desktop": "npm --workspace=@show-converter/desktop run tauri dev",
+    "desktop:web": "npm --workspace=@show-converter/desktop run dev",
+    "desktop:build": "npm --workspace=@show-converter/desktop run tauri build"
   },
   "overrides": {
     "vite": "^6.1.0"
