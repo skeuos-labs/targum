@@ -370,6 +370,207 @@ describe('CLI argument parsing', () => {
     });
   });
 
+  describe('batch command', () => {
+    it('parses batch command with required flags', () => {
+      const res = parseCliArgs(['batch', 'input.vpc', '-t', 'pro', '-o', 'out-dir']);
+      expect(res).toEqual({
+        ok: true,
+        command: {
+          kind: 'batch',
+          inputs: ['input.vpc'],
+          to: 'pro',
+          out: 'out-dir',
+          recursive: false,
+          onCollision: 'rename',
+          strict: false,
+          json: false,
+        },
+      });
+    });
+
+    it('parses multiple inputs in batch command', () => {
+      const res = parseCliArgs([
+        'batch',
+        'file1.pro',
+        'file2.vpc',
+        'folder',
+        '-t',
+        'txt',
+        '-o',
+        'out',
+      ]);
+      expect(res.ok).toBe(true);
+      if (res.ok && res.command.kind === 'batch') {
+        expect(res.command.inputs).toEqual(['file1.pro', 'file2.vpc', 'folder']);
+      }
+    });
+
+    it('parses bare --combine flag as boolean', () => {
+      const res = parseCliArgs(['batch', 'folder', '-t', 'pptx', '-o', 'out', '--combine']);
+      expect(res.ok).toBe(true);
+      if (res.ok && res.command.kind === 'batch') {
+        expect(res.command.combine).toBe(true);
+        expect(res.command.combineName).toBeUndefined();
+      }
+    });
+
+    it('parses --combine with deck name', () => {
+      const res = parseCliArgs([
+        'batch',
+        'folder',
+        '-t',
+        'pptx',
+        '-o',
+        'out',
+        '--combine',
+        'SundayService',
+      ]);
+      expect(res.ok).toBe(true);
+      if (res.ok && res.command.kind === 'batch') {
+        expect(res.command.combine).toBe('SundayService');
+        expect(res.command.combineName).toBe('SundayService');
+      }
+    });
+
+    it('parses --combine=<name> syntax', () => {
+      const res = parseCliArgs([
+        'batch',
+        'folder',
+        '-t',
+        'pptx',
+        '-o',
+        'out',
+        '--combine=MyDeck',
+      ]);
+      expect(res.ok).toBe(true);
+      if (res.ok && res.command.kind === 'batch') {
+        expect(res.command.combine).toBe('MyDeck');
+        expect(res.command.combineName).toBe('MyDeck');
+      }
+    });
+
+    it('parses --library mapping to libraryName', () => {
+      const res = parseCliArgs(['batch', 'folder', '-t', 'pro', '-o', 'out', '--library', 'MyLib']);
+      expect(res.ok).toBe(true);
+      if (res.ok && res.command.kind === 'batch') {
+        expect(res.command.libraryName).toBe('MyLib');
+      }
+    });
+
+    it('parses -r and --recursive flag', () => {
+      const resShort = parseCliArgs(['batch', 'folder', '-t', 'pro', '-o', 'out', '-r']);
+      expect(resShort.ok).toBe(true);
+      if (resShort.ok && resShort.command.kind === 'batch') {
+        expect(resShort.command.recursive).toBe(true);
+      }
+
+      const resLong = parseCliArgs(['batch', 'folder', '-t', 'pro', '-o', 'out', '--recursive']);
+      expect(resLong.ok).toBe(true);
+      if (resLong.ok && resLong.command.kind === 'batch') {
+        expect(resLong.command.recursive).toBe(true);
+      }
+    });
+
+    it('parses --on-collision policy', () => {
+      const policies = ['rename', 'skip', 'overwrite', 'error'] as const;
+      for (const policy of policies) {
+        const res = parseCliArgs(['batch', 'folder', '-t', 'pro', '-o', 'out', '--on-collision', policy]);
+        expect(res.ok).toBe(true);
+        if (res.ok && res.command.kind === 'batch') {
+          expect(res.command.onCollision).toBe(policy);
+        }
+      }
+    });
+
+    it('rejects invalid --on-collision policy', () => {
+      const res = parseCliArgs(['batch', 'folder', '-t', 'pro', '-o', 'out', '--on-collision', 'invalid']);
+      expect(res.ok).toBe(false);
+      if (!res.ok) {
+        expect(res.error).toMatch(/invalid --on-collision/i);
+      }
+    });
+
+    it('maps -f / --force to onCollision "overwrite"', () => {
+      const res = parseCliArgs(['batch', 'folder', '-t', 'pro', '-o', 'out', '-f']);
+      expect(res.ok).toBe(true);
+      if (res.ok && res.command.kind === 'batch') {
+        expect(res.command.onCollision).toBe('overwrite');
+      }
+    });
+
+    it('fails when batch is missing input file(s)', () => {
+      const res = parseCliArgs(['batch', '-t', 'pro', '-o', 'out']);
+      expect(res.ok).toBe(false);
+      if (!res.ok) {
+        expect(res.error).toMatch(/input file\(s\)/i);
+      }
+    });
+
+    it('fails when batch is missing -t / --to flag', () => {
+      const res = parseCliArgs(['batch', 'folder', '-o', 'out']);
+      expect(res.ok).toBe(false);
+      if (!res.ok) {
+        expect(res.error).toMatch(/--to|-t/i);
+      }
+    });
+
+    it('fails when batch is missing -o / --out flag', () => {
+      const res = parseCliArgs(['batch', 'folder', '-t', 'pro']);
+      expect(res.ok).toBe(false);
+      if (!res.ok) {
+        expect(res.error).toMatch(/--out|-o/i);
+      }
+    });
+
+    it('rejects --combine with pro or txt format', () => {
+      const resPro = parseCliArgs(['batch', 'folder', '-t', 'pro', '-o', 'out', '--combine']);
+      expect(resPro.ok).toBe(false);
+      if (!resPro.ok) {
+        expect(resPro.error).toMatch(/combine/i);
+      }
+
+      const resTxt = parseCliArgs(['batch', 'folder', '-t', 'txt', '-o', 'out', '--combine']);
+      expect(resTxt.ok).toBe(false);
+      if (!resTxt.ok) {
+        expect(resTxt.error).toMatch(/combine/i);
+      }
+    });
+
+    it('rejects --library with target format other than pro', () => {
+      const res = parseCliArgs(['batch', 'folder', '-t', 'pptx', '-o', 'out', '--library', 'Lib']);
+      expect(res.ok).toBe(false);
+      if (!res.ok) {
+        expect(res.error).toMatch(/library/i);
+      }
+    });
+
+    it('rejects --combine and --library together', () => {
+      const res = parseCliArgs([
+        'batch',
+        'folder',
+        '-t',
+        'pro',
+        '-o',
+        'out',
+        '--combine',
+        '--library',
+        'Lib',
+      ]);
+      expect(res.ok).toBe(false);
+      if (!res.ok) {
+        expect(res.error).toMatch(/mutually exclusive/i);
+      }
+    });
+
+    it('rejects --combine option in convert command', () => {
+      const res = parseCliArgs(['convert', 'file.vpc', '-t', 'pro', '--combine']);
+      expect(res.ok).toBe(false);
+      if (!res.ok) {
+        expect(res.error).toMatch(/unknown option/i);
+      }
+    });
+  });
+
   describe('error handling', () => {
     it('fails on unknown command', () => {
       const res = parseCliArgs(['unknown-command']);

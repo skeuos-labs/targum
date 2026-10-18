@@ -1,4 +1,5 @@
 import { parseArgs } from 'node:util';
+import type { CollisionPolicy } from '../batch/index.js';
 
 export type CliCommand =
   | { kind: 'help'; text: string }
@@ -14,6 +15,20 @@ export type CliCommand =
       song?: string;
       split?: string;
       json: boolean;
+      recursive?: boolean;
+    }
+  | {
+      kind: 'batch';
+      inputs: string[];
+      to: string;
+      out: string;
+      recursive: boolean;
+      combine?: boolean | string;
+      combineName?: string;
+      libraryName?: string;
+      onCollision: CollisionPolicy;
+      strict: boolean;
+      json: boolean;
     };
 
 export type CliParsedResult =
@@ -27,9 +42,11 @@ export const HELP_TEXT = `Show Converter — CLI worship presentation conversion
 Usage:
   show-converter [command] [options]
   show-converter <input> -t <format> [options]
+  show-converter batch <inputs...> -t <format> -o <outDir> [options]
 
 Commands:
   convert <input> -t <format>    Convert input presentation to target format (default command)
+  batch <inputs...> -t <format>  Batch convert multiple files or folders
   inspect <input>                Inspect presentation structure and metadata
   formats                        List all supported formats and capabilities
   help, --help, -h               Show this help message
@@ -42,6 +59,17 @@ Options (convert):
   --song <index|title>           Select single song from multi-song input
   --split <dir>                  Split multi-song input into individual files
   --json                         Output result summary as JSON
+
+Options (batch):
+  -t, --to <format>              Target format (pro, vpc, show, txt, pptx) [required]
+  -o, --out <path>               Output directory path [required]
+  -r, --recursive                Recursively scan input directories
+  --combine [name]               Combine presentations into single file (pptx, vpc, show)
+  --library <name>               Generate ProPresenter library folder with playlist (pro only)
+  --on-collision <policy>        File collision policy (rename, skip, overwrite, error) [default: rename]
+  -f, --force                    Alias for --on-collision overwrite
+  --strict                       Treat warnings as errors (exit code 1)
+  --json                         Output batch summary as JSON
 
 Options (inspect):
   --json                         Output canonical library structure as JSON
@@ -58,9 +86,34 @@ const PARSE_OPTIONS = {
   split: { type: 'string' },
   json: { type: 'boolean' },
   help: { type: 'boolean', short: 'h' },
+  recursive: { type: 'boolean', short: 'r' },
+  library: { type: 'string' },
+  'library-name': { type: 'string' },
+  'on-collision': { type: 'string' },
 } as const;
 
 export function parseCliArgs(argv: string[]): CliParsedResult {
+  // Pre-process argv to extract --combine or --combine=<name>
+  let combineVal: boolean | string | undefined;
+  const filteredArgv: string[] = [];
+
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i]!;
+    if (arg === '--combine') {
+      const next = argv[i + 1];
+      if (next !== undefined && !next.startsWith('-')) {
+        combineVal = next;
+        i++;
+      } else {
+        combineVal = true;
+      }
+    } else if (arg.startsWith('--combine=')) {
+      combineVal = arg.slice('--combine='.length);
+    } else {
+      filteredArgv.push(arg);
+    }
+  }
+
   let parsed: {
     values: {
       to?: string;
@@ -71,13 +124,17 @@ export function parseCliArgs(argv: string[]): CliParsedResult {
       split?: string;
       json?: boolean;
       help?: boolean;
+      recursive?: boolean;
+      library?: string;
+      'library-name'?: string;
+      'on-collision'?: string;
     };
     positionals: string[];
   };
 
   try {
     parsed = parseArgs({
-      args: argv,
+      args: filteredArgv,
       options: PARSE_OPTIONS,
       allowPositionals: true,
       strict: true,
@@ -105,6 +162,9 @@ export function parseCliArgs(argv: string[]): CliParsedResult {
   }
 
   if (first === 'formats') {
+    if (combineVal !== undefined) {
+      return { ok: false, error: "Unknown option '--combine'", help: HELP_TEXT };
+    }
     if (parsed.positionals.length > 1) {
       return { ok: false, error: `Unexpected argument: "${parsed.positionals[1]}"`, help: HELP_TEXT };
     }
@@ -112,6 +172,9 @@ export function parseCliArgs(argv: string[]): CliParsedResult {
   }
 
   if (first === 'inspect') {
+    if (combineVal !== undefined) {
+      return { ok: false, error: "Unknown option '--combine'", help: HELP_TEXT };
+    }
     if (!second) {
       return { ok: false, error: 'Missing required input file for inspect command', help: HELP_TEXT };
     }
@@ -121,7 +184,111 @@ export function parseCliArgs(argv: string[]): CliParsedResult {
     return { ok: true, command: { kind: 'inspect', input: second, json: Boolean(parsed.values.json) } };
   }
 
+  if (first === 'batch') {
+    const inputs = parsed.positionals.slice(1);
+    if (inputs.length === 0) {
+      return {
+        ok: false,
+        error: 'Missing required input file(s) or directory for batch command',
+        help: HELP_TEXT,
+      };
+    }
+    if (!parsed.values.to) {
+      return {
+        ok: false,
+        error: 'Missing required --to / -t option for batch command',
+        help: HELP_TEXT,
+      };
+    }
+    if (!parsed.values.out) {
+      return {
+        ok: false,
+        error: 'Missing required --out / -o option for batch command',
+        help: HELP_TEXT,
+      };
+    }
+
+    const rawTo = parsed.values.to;
+    const toFormat = rawTo.toLowerCase() === 'show' ? 'freeshow' : rawTo;
+    const libraryName = parsed.values.library || parsed.values['library-name'];
+
+    if (combineVal !== undefined && libraryName) {
+      return {
+        ok: false,
+        error: '--combine and --library are mutually exclusive.',
+        help: HELP_TEXT,
+      };
+    }
+
+    if (
+      combineVal !== undefined &&
+      toFormat !== 'pptx' &&
+      toFormat !== 'vpc' &&
+      toFormat !== 'freeshow'
+    ) {
+      return {
+        ok: false,
+        error: `--combine is only supported for pptx, vpc, and show formats (incompatible with "${rawTo}").`,
+        help: HELP_TEXT,
+      };
+    }
+
+    if (libraryName && toFormat !== 'pro') {
+      return {
+        ok: false,
+        error: '--library is only supported when target format is "pro".',
+        help: HELP_TEXT,
+      };
+    }
+
+    let onCollision: CollisionPolicy = 'rename';
+    if (parsed.values['on-collision']) {
+      const policy = parsed.values['on-collision'].toLowerCase();
+      if (
+        policy !== 'rename' &&
+        policy !== 'skip' &&
+        policy !== 'overwrite' &&
+        policy !== 'error'
+      ) {
+        return {
+          ok: false,
+          error: `Invalid --on-collision policy: "${parsed.values['on-collision']}". Must be one of: rename, skip, overwrite, error.`,
+          help: HELP_TEXT,
+        };
+      }
+      onCollision = policy as CollisionPolicy;
+    } else if (parsed.values.force) {
+      onCollision = 'overwrite';
+    }
+
+    return {
+      ok: true,
+      command: {
+        kind: 'batch',
+        inputs,
+        to: toFormat,
+        out: parsed.values.out,
+        recursive: Boolean(parsed.values.recursive),
+        ...(combineVal !== undefined ? { combine: combineVal } : {}),
+        ...(typeof combineVal === 'string' ? { combineName: combineVal } : {}),
+        ...(libraryName ? { libraryName } : {}),
+        onCollision,
+        strict: Boolean(parsed.values.strict),
+        json: Boolean(parsed.values.json),
+      },
+    };
+  }
+
   if (first === 'convert') {
+    if (combineVal !== undefined) {
+      return { ok: false, error: "Unknown option '--combine'", help: HELP_TEXT };
+    }
+    if (parsed.values.library || parsed.values['library-name']) {
+      return { ok: false, error: "Option '--library' is only valid for batch command", help: HELP_TEXT };
+    }
+    if (parsed.values['on-collision']) {
+      return { ok: false, error: "Option '--on-collision' is only valid for batch command", help: HELP_TEXT };
+    }
     if (!second) {
       return { ok: false, error: 'Missing required input file for convert command', help: HELP_TEXT };
     }
@@ -144,6 +311,7 @@ export function parseCliArgs(argv: string[]): CliParsedResult {
         ...(parsed.values.song !== undefined ? { song: parsed.values.song } : {}),
         ...(parsed.values.split !== undefined ? { split: parsed.values.split } : {}),
         json: Boolean(parsed.values.json),
+        ...(parsed.values.recursive !== undefined ? { recursive: Boolean(parsed.values.recursive) } : {}),
       },
     };
   }
@@ -155,9 +323,19 @@ export function parseCliArgs(argv: string[]): CliParsedResult {
     parsed.values.force ||
     parsed.values.strict ||
     parsed.values.song !== undefined ||
-    parsed.values.split !== undefined;
+    parsed.values.split !== undefined ||
+    parsed.values.recursive !== undefined;
 
   if (hasConvertFlags) {
+    if (combineVal !== undefined) {
+      return { ok: false, error: "Unknown option '--combine'", help: HELP_TEXT };
+    }
+    if (parsed.values.library || parsed.values['library-name']) {
+      return { ok: false, error: "Option '--library' is only valid for batch command", help: HELP_TEXT };
+    }
+    if (parsed.values['on-collision']) {
+      return { ok: false, error: "Option '--on-collision' is only valid for batch command", help: HELP_TEXT };
+    }
     if (parsed.positionals.length > 1) {
       return { ok: false, error: `Unexpected argument: "${parsed.positionals[1]}"`, help: HELP_TEXT };
     }
@@ -177,6 +355,7 @@ export function parseCliArgs(argv: string[]): CliParsedResult {
         ...(parsed.values.song !== undefined ? { song: parsed.values.song } : {}),
         ...(parsed.values.split !== undefined ? { split: parsed.values.split } : {}),
         json: Boolean(parsed.values.json),
+        ...(parsed.values.recursive !== undefined ? { recursive: Boolean(parsed.values.recursive) } : {}),
       },
     };
   }

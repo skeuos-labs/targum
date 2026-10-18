@@ -13,6 +13,7 @@ import {
   formatCliWarning,
   sanitizeFileName,
 } from '../utils.js';
+import { executeBatchCommand } from './batch.js';
 
 export interface ConvertCommandOptions {
   input: string;
@@ -23,6 +24,7 @@ export interface ConvertCommandOptions {
   song?: string;
   split?: string;
   json?: boolean;
+  recursive?: boolean;
 }
 
 export async function executeConvertCommand(
@@ -43,6 +45,25 @@ export async function executeConvertCommand(
       stdout: '',
       stderr: `Input file not found: ${options.input}`,
     };
+  }
+
+  if (fs.statSync(options.input).isDirectory()) {
+    if (!options.out) {
+      return {
+        exitCode: 3,
+        stdout: '',
+        stderr: 'Missing required --out / -o option for directory conversion',
+      };
+    }
+    return executeBatchCommand({
+      inputs: [options.input],
+      to: options.to,
+      out: options.out,
+      recursive: options.recursive ?? false,
+      onCollision: options.force ? 'overwrite' : 'rename',
+      strict: options.strict,
+      json: options.json,
+    });
   }
 
   const targetFormat = getFormat(options.to as FormatId);
