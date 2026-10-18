@@ -8,13 +8,13 @@ Pure TypeScript conversion engine and CLI utility for worship presentations and 
 
 | Format | Extension | Import | Export | Multi-Song | Notes |
 |---|---|---|---|---|---|
-| **ProPresenter 7** | `.pro` | Yes | Yes | Single | Protobuf, 1080p canvas, bounds geometry, RTF codec |
+| **ProPresenter 7** | `.pro` | Yes | Yes | Single | Protobuf, 1080p canvas, bounds geometry, RTF codec, `.proplaylist` export |
 | **ProPresenter 6** | `.pro6` | Yes | No | Single | XML parsing, base64 RTF decoding |
-| **VideoPsalm** | `.vpc` | Yes | Yes | Yes | AES-128 encrypted ZIP, universal format key, dialect repair |
+| **VideoPsalm** | `.vpc` | Yes | Yes | Yes | AES-128 encrypted ZIP, universal format key, dialect repair, multi-song |
 | **VideoPsalm JSON** | `.json` | Yes | No | Yes | Diagnostic import of unquoted JSON dialect |
 | **FreeShow** | `.show` | Yes | Yes | Yes | Clean-room JSON format codec, layout groups, multi-song |
 | **Plain Text** | `.txt` | Yes | Yes | Single | Section markers (`[Verse 1]`, `[Chorus]`), blank-line slide breaks |
-| **PowerPoint** | `.pptx` | Yes | Yes | Single | Text-only OpenXML presentation package, 16:9 widescreen |
+| **PowerPoint** | `.pptx` | Yes | Yes | Multi-Song | OpenXML presentation package, 16:9 widescreen, `<p14:sectionLst>` sections |
 
 ---
 
@@ -179,7 +179,108 @@ show-converter Hymnal.vpc -t pro --song "amazing grace" -o ./Grace.pro
 
 ---
 
-### 5. Exit Codes
+### 5. Batch Conversion (Phase 2)
+
+Batch processing allows converting multiple individual files, entire directories of songs, and multi-presentation archives without manual per-file scripting.
+
+#### 5.1 Directory Conversion Auto-Routing
+
+When passing a directory to `convert`, the CLI automatically routes to the batch engine:
+
+```bash
+show-converter convert ./hymns_folder/ -t pro -o ./output/
+```
+
+#### 5.2 Dedicated Batch Command (`batch`)
+
+Process one or more files, folders, or mixed sources:
+
+```bash
+show-converter batch <inputs...> -t <format> -o <outDir> [options]
+```
+
+Example converting mixed sources to plain text lyrics:
+```bash
+show-converter batch ./service_songs/*.vpc ./special.pro -t txt -o ./dist/lyrics/
+```
+
+#### 5.3 Recursive Directory Traversal (`-r, --recursive`)
+
+Recursively traverse subdirectories depth-first, sniffing each file and skipping unsupported files:
+
+```bash
+show-converter batch ./archive/ -t pro -o ./converted/ -r
+```
+
+#### 5.4 Combined Multi-Song Output (`--combine [name]`)
+
+Merge all discovered presentations into a single unified output file instead of unpacking individual files:
+
+- **PowerPoint (`.pptx`):** Generates native OpenXML `<p14:sectionLst>` sections with one section per song, a dedicated title/metadata cover slide (44pt title, 20pt subtitle with Author, CCLI, Copyright), and styled lyric slides (32pt regular, centered).
+- **VideoPsalm (`.vpc`):** Bundles all songs into a single AES-128 encrypted multi-song songbook archive.
+- **FreeShow (`.show`):** Bundles all presentations into a single multi-song JSON package with shared layout groups.
+
+```bash
+# Combine entire hymn folder into a single structured PowerPoint deck with sections
+show-converter batch ./hymns/ -t pptx -o ./service/ --combine "Sunday_Service_Deck"
+
+# Combine into a VideoPsalm songbook archive
+show-converter batch ./lyrics/*.txt -t vpc -o ./dist/ --combine "ChurchHymnal"
+```
+
+*Note: Incompatible target formats (`pro`, `txt`) fail closed with exit code 3.*
+
+#### 5.5 ProPresenter Library Export (`--library <name>`)
+
+Export presentations as a native ProPresenter 7 library directory accompanied by an ordered `rv.data.Playlist` protobuf file (`<name>.proplaylist`):
+
+```bash
+show-converter batch ./songs/ -t pro -o ./ProLibrary/ --library "SundaySetlist"
+```
+
+Generates:
+```text
+ProLibrary/
+└── SundaySetlist/
+    ├── Amazing Grace.pro
+    ├── How Great Thou Art.pro
+    └── SundaySetlist.proplaylist
+```
+This folder and playlist can be imported directly into ProPresenter 7 with play order preserved.
+
+#### 5.6 Collision Handling Policies (`--on-collision`)
+
+Prevent accidental overwrites with deterministic collision strategies:
+
+| Policy | Behavior |
+|---|---|
+| `rename` (Default) | Automatically appends numeric disambiguation (`Song (2).pro`, `Song (3).pro`). |
+| `skip` | Skips conversion if destination file exists on disk, recording item as `skipped`. |
+| `overwrite` | Replaces existing file on disk (`-f, --force` is a CLI alias for overwrite). |
+| `error` | Fails the item with an error, marking item as `failed` (exits with code 2). |
+
+Example:
+```bash
+show-converter batch ./new_hymns/ -t pro -o ./library/ --on-collision skip
+```
+
+#### 5.7 Batch Command Options Reference
+
+| Flag | Description |
+|---|---|
+| `-t, --to <format>` | **Required.** Target format ID: `pro`, `vpc`, `freeshow`, `txt`, `pptx`. |
+| `-o, --out <outDir>` | **Required.** Output directory path. |
+| `-r, --recursive` | Recursively scan directories for supported presentation files. |
+| `--combine [name]` | Bundle all presentations into a single combined file (`pptx`, `vpc`, `show`). |
+| `--library <name>` | Generate ProPresenter 7 library folder with `.proplaylist` (`pro` only). |
+| `--on-collision <policy>` | Collision policy: `rename` (default), `skip`, `overwrite`, `error`. |
+| `-f, --force` | Alias for `--on-collision overwrite`. |
+| `--strict` | Treat warnings as errors; exits with code 1 if any warnings occur. |
+| `--json` | Emit complete machine-readable `BatchSummary` JSON on `stdout`. |
+
+---
+
+### 6. Exit Codes
 
 `show-converter` uses deterministic exit codes for shell scripts and CI/CD pipelines:
 
@@ -187,12 +288,12 @@ show-converter Hymnal.vpc -t pro --song "amazing grace" -o ./Grace.pro
 |:---:|---|---|
 | **`0`** | **Success** | Operation completed successfully. Non-fatal warnings (if any) printed to `stderr`. |
 | **`1`** | **Warning (Strict)** | Conversion succeeded, but non-fatal fidelity warnings occurred while `--strict` was active. Output file is still written. |
-| **`2`** | **Engine / Conversion Error** | Import failure, corrupted archive, unsupported codec operation, or multi-song collision without `--split`/`--song`. |
-| **`3`** | **CLI / User Error** | Invalid or missing arguments, missing input file, unexportable format ID, or output file already exists without `-f`. |
+| **`2`** | **Engine / Conversion Error** | Import failure, corrupted archive, unsupported codec operation, multi-song collision without `--split`/`--song`, or one or more batch items failed. |
+| **`3`** | **CLI / User Error** | Invalid or missing arguments, missing input file/directory, unexportable format ID, incompatible flags (e.g. `--combine` with `pro`), or output file already exists without `-f`. |
 
 ---
 
-### 6. Streaming Discipline (`stdout` vs `stderr`)
+### 7. Streaming Discipline (`stdout` vs `stderr`)
 
 The CLI strictly separates machine-readable data from human diagnostics:
 - **`stdout`:** Dedicated exclusively to successful outputs. Emits either the path of the created file, the human-readable summary, or raw JSON when `--json` is passed. Safe for piping into `jq`, file redirects (`>`), or downstream scripts.
@@ -226,7 +327,7 @@ Compiled output emits to `./dist`.
 ```bash
 npm test
 ```
-Runs Vitest across 17 test suites (330 tests) covering codecs, CLI commands, round-trip matrix, and real-world sample corpus. Pretest automatically rebuilds TypeScript.
+Runs Vitest across 23 test suites (427 tests) covering codecs, batch processing, CLI commands, round-trip matrix, and real-world sample corpus. Pretest automatically rebuilds TypeScript.
 
 ---
 
@@ -321,6 +422,44 @@ console.log(`Detected format: ${format}`); // "pro" | "vpc" | "show" | "txt" | "
 
 ---
 
+### 5. Programmatic Batch Conversion (`batchConvert`)
+
+Convert sets of files and directories with progress streaming, collision policies, and combined output options:
+
+```typescript
+import {
+  batchConvert,
+  type BatchConvertOptions,
+  type BatchSummary,
+} from "show-converter-engine";
+
+const options: BatchConvertOptions = {
+  inputs: ["./hymns_folder/", "./special_song.vpc"],
+  to: "pptx",                                  // Target format: "pro" | "vpc" | "freeshow" | "txt" | "pptx"
+  outDir: "./output_decks/",
+  recursive: true,                             // Deep directory scan
+  combine: true,                               // Combine all presentations into one file
+  combineName: "SundayServiceDeck",            // Output name (e.g. SundayServiceDeck.pptx)
+  onCollision: "rename",                       // "rename" | "skip" | "overwrite" | "error"
+  strict: false,
+};
+
+const summary: BatchSummary = await batchConvert(options, (progress) => {
+  console.log(
+    `[${progress.currentFile}/${progress.totalFiles}] ${progress.sourcePath} -> ${progress.status}`
+  );
+});
+
+console.log(
+  `Success: ${summary.successCount}/${summary.totalSongs} songs converted (${summary.durationMs}ms)`
+);
+if (summary.combinedOutputPath) {
+  console.log(`Combined output generated: ${summary.combinedOutputPath}`);
+}
+```
+
+---
+
 ## Canonical Data Model
 
 All conversions normalize through typed Zod-validated structures:
@@ -400,14 +539,22 @@ show-converter/
 │   │   ├── videopsalm/        # .vpc AES ZIP codec, JSON dialect parser/serializer
 │   │   ├── freeshow/          # .show clean-room JSON codec
 │   │   ├── txt/               # .txt marker codec
-│   │   └── pptx/              # .pptx OpenXML text-only codec
+│   │   └── pptx/              # .pptx OpenXML codec with <p14:sectionLst> sections
+│   ├── batch/                 # Batch processing engine (Phase 2)
+│   │   ├── index.ts           # Public batch exports
+│   │   ├── types.ts           # Batch options, progress, item results, summary
+│   │   ├── scanner.ts         # Recursive input discovery, sniffing, deduplication
+│   │   ├── collision.ts       # Collision policies (rename, skip, overwrite, error)
+│   │   ├── playlist.ts        # ProPresenter 7 rv.data.Playlist protobuf generator
+│   │   └── orchestrator.ts    # Fault-tolerant batchConvert execution engine
 │   ├── pipeline/              # Format registry, detector, convert orchestration
+│   ├── cli/                   # CLI interface (parseArgs, commands, streaming)
 │   └── fixtures/              # Deterministic test fixtures ("Amazing Grace")
 ├── test/
-│   ├── unit/                  # Codec and canonical unit tests
+│   ├── unit/                  # Codec, canonical, batch, and CLI unit tests
 │   ├── roundtrip/             # 20-pair cross-format roundtrip matrix tests
 │   └── corpus/                # Real-world sample file verification suite
-├── docs/                      # Phase 1 verification report and specifications
+├── docs/                      # Phase 1 and Phase 2 reports and design specifications
 ├── package.json
 └── tsconfig.json
 ```
