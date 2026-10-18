@@ -163,6 +163,10 @@ export const useExportStore = create<ExportStoreState>((set, get) => ({
       return emptySummary;
     }
 
+    if (!outputDirectory.trim()) {
+      throw new Error('Output directory is required');
+    }
+
     set({
       isExporting: true,
       progress: {
@@ -172,7 +176,8 @@ export const useExportStore = create<ExportStoreState>((set, get) => ({
       },
     });
 
-    await activeAdapter.createDir(outputDirectory);
+    try {
+      await activeAdapter.createDir(outputDirectory);
 
     const targetDef = getFormat(targetFormat);
     const targetExt = targetDef?.extensions[0] ?? '.pro';
@@ -233,19 +238,33 @@ export const useExportStore = create<ExportStoreState>((set, get) => ({
             });
           }
         } else {
-          await activeAdapter.writeFile(resolved.path, expRes.value.bytes);
-          combinedOutputPath = resolved.path;
-          const expWarnings = expRes.value.warnings ?? expRes.warnings ?? [];
-          for (let i = 0; i < targetItems.length; i++) {
-            const it = targetItems[i]!;
-            items.push({
-              sourcePath: it.source.path,
-              sourceFormat: it.source.format,
-              presentationTitle: it.presentation.title || 'untitled',
-              outputPath: resolved.path,
-              status: 'success',
-              warnings: i === 0 ? [...it.source.warnings, ...expWarnings] : it.source.warnings,
-            });
+          try {
+            await activeAdapter.writeFile(resolved.path, expRes.value.bytes);
+            combinedOutputPath = resolved.path;
+            const expWarnings = expRes.value.warnings ?? expRes.warnings ?? [];
+            for (let i = 0; i < targetItems.length; i++) {
+              const it = targetItems[i]!;
+              items.push({
+                sourcePath: it.source.path,
+                sourceFormat: it.source.format,
+                presentationTitle: it.presentation.title || 'untitled',
+                outputPath: resolved.path,
+                status: 'success',
+                warnings: i === 0 ? [...it.source.warnings, ...expWarnings] : it.source.warnings,
+              });
+            }
+          } catch (err) {
+            for (const it of targetItems) {
+              items.push({
+                sourcePath: it.source.path,
+                sourceFormat: it.source.format,
+                presentationTitle: it.presentation.title || 'untitled',
+                outputPath: resolved.path,
+                status: 'failed',
+                warnings: it.source.warnings,
+                error: err instanceof Error ? err : new Error(String(err)),
+              });
+            }
           }
         }
       }
@@ -312,30 +331,46 @@ export const useExportStore = create<ExportStoreState>((set, get) => ({
               error: expRes.error,
             });
           } else {
-            await activeAdapter.writeFile(resolved.path, expRes.value.bytes);
-            const fileName = resolved.path.split(/[/\\]/).pop() || '';
-            playlistEntries.push({
-              title: presTitle,
-              uuid: it.presentation.id,
-              relativePath: `./${fileName}`,
-            });
-            const expWarnings = expRes.value.warnings ?? expRes.warnings ?? [];
-            items.push({
-              sourcePath: it.source.path,
-              sourceFormat: it.source.format,
-              presentationTitle: presTitle,
-              outputPath: resolved.path,
-              status: 'success',
-              warnings: [...it.source.warnings, ...expWarnings],
-            });
+            try {
+              await activeAdapter.writeFile(resolved.path, expRes.value.bytes);
+              const fileName = resolved.path.split(/[/\\]/).pop() || '';
+              playlistEntries.push({
+                title: presTitle,
+                uuid: it.presentation.id,
+                relativePath: `./${fileName}`,
+              });
+              const expWarnings = expRes.value.warnings ?? expRes.warnings ?? [];
+              items.push({
+                sourcePath: it.source.path,
+                sourceFormat: it.source.format,
+                presentationTitle: presTitle,
+                outputPath: resolved.path,
+                status: 'success',
+                warnings: [...it.source.warnings, ...expWarnings],
+              });
+            } catch (err) {
+              items.push({
+                sourcePath: it.source.path,
+                sourceFormat: it.source.format,
+                presentationTitle: presTitle,
+                outputPath: resolved.path,
+                status: 'failed',
+                warnings: it.source.warnings,
+                error: err instanceof Error ? err : new Error(String(err)),
+              });
+            }
           }
         }
       }
 
       if (playlistEntries.length > 0) {
-        const playlistBytes = generateProPlaylist(trimmedLib, playlistEntries);
-        const playlistPath = `${libDir}${separator}${trimmedLib}.proplaylist`;
-        await activeAdapter.writeFile(playlistPath, playlistBytes);
+        try {
+          const playlistBytes = generateProPlaylist(trimmedLib, playlistEntries);
+          const playlistPath = `${libDir}${separator}${trimmedLib}.proplaylist`;
+          await activeAdapter.writeFile(playlistPath, playlistBytes);
+        } catch {
+          // Playlist write error
+        }
       }
     } else {
       // Individual mode
@@ -392,16 +427,28 @@ export const useExportStore = create<ExportStoreState>((set, get) => ({
               error: expRes.error,
             });
           } else {
-            await activeAdapter.writeFile(resolved.path, expRes.value.bytes);
-            const expWarnings = expRes.value.warnings ?? expRes.warnings ?? [];
-            items.push({
-              sourcePath: it.source.path,
-              sourceFormat: it.source.format,
-              presentationTitle: presTitle,
-              outputPath: resolved.path,
-              status: 'success',
-              warnings: [...it.source.warnings, ...expWarnings],
-            });
+            try {
+              await activeAdapter.writeFile(resolved.path, expRes.value.bytes);
+              const expWarnings = expRes.value.warnings ?? expRes.warnings ?? [];
+              items.push({
+                sourcePath: it.source.path,
+                sourceFormat: it.source.format,
+                presentationTitle: presTitle,
+                outputPath: resolved.path,
+                status: 'success',
+                warnings: [...it.source.warnings, ...expWarnings],
+              });
+            } catch (err) {
+              items.push({
+                sourcePath: it.source.path,
+                sourceFormat: it.source.format,
+                presentationTitle: presTitle,
+                outputPath: resolved.path,
+                status: 'failed',
+                warnings: it.source.warnings,
+                error: err instanceof Error ? err : new Error(String(err)),
+              });
+            }
           }
         }
       }
@@ -426,7 +473,6 @@ export const useExportStore = create<ExportStoreState>((set, get) => ({
     };
 
     set({
-      isExporting: false,
       progress: {
         current: targetItems.length,
         total: targetItems.length,
@@ -436,5 +482,8 @@ export const useExportStore = create<ExportStoreState>((set, get) => ({
     });
 
     return summary;
+    } finally {
+      set({ isExporting: false });
+    }
   },
 }));

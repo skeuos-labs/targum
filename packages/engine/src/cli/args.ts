@@ -1,5 +1,7 @@
-import { parseArgs } from 'node:util';
+import util from 'node:util';
 import type { CollisionPolicy } from '../batch/index.js';
+
+const parseArgs = util.parseArgs;
 
 export type CliCommand =
   | { kind: 'help'; text: string }

@@ -1,0 +1,282 @@
+import { useState, type DragEvent } from 'react';
+import {
+  FolderPlus,
+  FilePlus,
+  Trash2,
+  ChevronDown,
+  ChevronRight,
+  Music,
+  FileText,
+  UploadCloud,
+} from 'lucide-react';
+import { useSourceStore } from '../state/sourceStore';
+import { getPlatformAdapter } from '../platform';
+import { cn } from '../lib/utils';
+
+export function SourcesSidebar() {
+  const {
+    sources,
+    selectedSourceId,
+    selectedSongId,
+    selectedSongs,
+    addFiles,
+    addDirectory,
+    removeSource,
+    selectSong,
+    toggleSongSelection,
+    selectAllSongs,
+    clearAll,
+  } = useSourceStore();
+
+  const [expandedSources, setExpandedSources] = useState<Record<string, boolean>>({});
+  const [isDragOver, setIsDragOver] = useState(false);
+  const adapter = getPlatformAdapter();
+
+  const allSongKeys: string[] = [];
+  for (const s of sources) {
+    for (const p of s.library.presentations) {
+      allSongKeys.push(`${s.id}:${p.id}`);
+    }
+  }
+
+  const isAllSelected =
+    allSongKeys.length > 0 && allSongKeys.every((key) => selectedSongs.has(key));
+
+  const handleAddFiles = async () => {
+    try {
+      const paths = await adapter.pickFiles();
+      if (paths && paths.length > 0) {
+        await addFiles(paths, adapter);
+      }
+    } catch {
+      // Pick cancelled or failed
+    }
+  };
+
+  const handleAddFolder = async () => {
+    try {
+      const dir = await adapter.pickDirectory();
+      if (dir) {
+        await addDirectory(dir, true, adapter);
+      }
+    } catch {
+      // Pick cancelled or failed
+    }
+  };
+
+  const toggleAccordion = (id: string) => {
+    setExpandedSources((prev) => ({
+      ...prev,
+      [id]: prev[id] === undefined ? false : !prev[id],
+    }));
+  };
+
+  const isExpanded = (id: string) => expandedSources[id] !== false;
+
+  const handleDragOver = (e: DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e: DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+  };
+
+  const handleDrop = async (e: DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+
+    const paths: string[] = [];
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      for (let i = 0; i < e.dataTransfer.files.length; i++) {
+        const file = e.dataTransfer.files[i]!;
+        const filePath = (file as unknown as { path?: string }).path || file.name;
+        if (filePath) {
+          paths.push(filePath);
+        }
+      }
+    }
+
+    if (paths.length > 0) {
+      await addFiles(paths, adapter);
+    }
+  };
+
+  return (
+    <aside
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      className="relative flex h-full w-80 flex-col border-r border-border bg-card/40 select-none overflow-hidden"
+    >
+      {/* Drag and Drop Overlay */}
+      {isDragOver && (
+        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-background/90 p-4 border-2 border-dashed border-primary">
+          <UploadCloud className="h-10 w-10 text-primary animate-bounce mb-2" />
+          <p className="text-sm font-semibold text-foreground">Drop files to import</p>
+        </div>
+      )}
+
+      {/* Header */}
+      <div className="flex flex-col gap-2 border-b border-border p-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Sources
+          </h2>
+          {sources.length > 0 && (
+            <button
+              type="button"
+              onClick={clearAll}
+              className="text-[11px] text-muted-foreground hover:text-destructive"
+            >
+              Clear All
+            </button>
+          )}
+        </div>
+
+        {/* Action Buttons */}
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={handleAddFiles}
+            className="flex items-center justify-center gap-1.5 rounded border border-border bg-background px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-accent"
+          >
+            <FilePlus className="h-3.5 w-3.5" />
+            <span>Add Files</span>
+          </button>
+          <button
+            type="button"
+            onClick={handleAddFolder}
+            className="flex items-center justify-center gap-1.5 rounded border border-border bg-background px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-accent"
+          >
+            <FolderPlus className="h-3.5 w-3.5" />
+            <span>Add Folder</span>
+          </button>
+        </div>
+
+        {/* Select All Checkbox */}
+        {allSongKeys.length > 0 && (
+          <div className="flex items-center justify-between pt-1">
+            <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isAllSelected}
+                onChange={(e) => selectAllSongs(e.target.checked)}
+                className="h-3.5 w-3.5 rounded border-border text-primary focus:ring-ring"
+              />
+              <span>Select All ({selectedSongs.size}/{allSongKeys.length})</span>
+            </label>
+          </div>
+        )}
+      </div>
+
+      {/* Source Files List */}
+      <div className="flex-1 overflow-y-auto p-2 space-y-2">
+        {sources.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-48 text-center text-muted-foreground p-4">
+            <FileText className="h-8 w-8 mb-2 opacity-40" />
+            <p className="text-xs">No files added yet</p>
+            <p className="text-[11px] opacity-70 mt-1">
+              Click Add Files or drag files here
+            </p>
+          </div>
+        ) : (
+          sources.map((source) => {
+            const open = isExpanded(source.id);
+            const songCount = source.library.presentations.length;
+
+            return (
+              <div
+                key={source.id}
+                className="rounded-md border border-border bg-card/60 overflow-hidden"
+              >
+                {/* File Header Accordion Row */}
+                <div className="flex items-center justify-between p-2 hover:bg-accent/40 group">
+                  <button
+                    type="button"
+                    onClick={() => toggleAccordion(source.id)}
+                    className="flex flex-1 items-center gap-1.5 min-w-0 text-left"
+                  >
+                    {open ? (
+                      <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                    ) : (
+                      <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                    )}
+                    <span className="rounded bg-primary/10 px-1 py-0.2 text-[10px] font-mono font-bold text-primary shrink-0 uppercase">
+                      .{source.format}
+                    </span>
+                    <span
+                      className="text-xs font-medium text-foreground truncate"
+                      title={source.name}
+                    >
+                      {source.name}
+                    </span>
+                  </button>
+
+                  <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                    <span className="rounded-full bg-muted px-1.5 py-0.2 text-[10px] font-medium text-muted-foreground">
+                      {songCount}
+                    </span>
+                    <button
+                      type="button"
+                      aria-label={`Remove source ${source.name}`}
+                      onClick={() => removeSource(source.id)}
+                      className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-muted-foreground hover:text-destructive"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Sub-list of Songs */}
+                {open && (
+                  <div className="border-t border-border/50 divide-y divide-border/30 bg-background/50">
+                    {source.library.presentations.map((song) => {
+                      const songKey = `${source.id}:${song.id}`;
+                      const isChecked = selectedSongs.has(songKey);
+                      const isCurrent =
+                        selectedSourceId === source.id && selectedSongId === song.id;
+
+                      return (
+                        <div
+                          key={song.id}
+                          className={cn(
+                            'flex items-center gap-2 px-2.5 py-1.5 text-xs transition-colors cursor-pointer hover:bg-accent/60',
+                            isCurrent && 'bg-accent font-semibold border-l-2 border-primary'
+                          )}
+                          onClick={() => selectSong(source.id, song.id)}
+                        >
+                          <input
+                            type="checkbox"
+                            aria-label={`Select song ${song.title}`}
+                            checked={isChecked}
+                            onChange={(e) => {
+                              e.stopPropagation();
+                              toggleSongSelection(source.id, song.id);
+                            }}
+                            className="h-3.5 w-3.5 rounded border-border text-primary focus:ring-ring"
+                          />
+                          <Music className="h-3 w-3 text-muted-foreground shrink-0" />
+                          <span className="flex-1 truncate text-foreground">
+                            {song.title || 'Untitled Song'}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground shrink-0">
+                            {song.slides.length} slides
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })
+        )}
+      </div>
+    </aside>
+  );
+}
