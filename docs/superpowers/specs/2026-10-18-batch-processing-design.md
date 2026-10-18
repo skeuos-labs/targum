@@ -92,8 +92,8 @@ export interface BatchItemResult {
 }
 
 export interface BatchSummary {
-  totalFound: number;
-  totalProcessed: number;
+  totalFiles: number;
+  totalSongs: number;
   successCount: number;
   skippedCount: number;
   failedCount: number;
@@ -104,10 +104,10 @@ export interface BatchSummary {
 }
 
 export type BatchProgressCallback = (progress: {
-  current: number;
-  total: number;
+  currentFile: number;
+  totalFiles: number;
   sourcePath: string;
-  presentationTitle?: string;
+  songCount?: number;
   status: "processing" | "success" | "skipped" | "failed";
   error?: Error;
 }) => void;
@@ -119,6 +119,8 @@ export type BatchProgressCallback = (progress: {
 
 `src/batch/scanner.ts`:
 - Accepts an array of file paths and/or directory paths.
+- File-Level Discovery: Scanner discovers and validates files on disk without performing expensive full-file decryption/decompression upfront.
+- `totalFiles` in progress callbacks represents the count of discovered supported input files. Multi-song archives report their internal song count as soon as parsed by the orchestrator.
 - For files: Sniffs format using `detectFormat(path, bytes)`. Unknown extensions/bytes are rejected with an explicit warning or skipped.
 - For directories: Reads directory contents. If `recursive: true`, traverses subdirectories depth-first.
 - Deduplication: Resolves absolute real paths to avoid scanning the same file multiple times via symlinks or redundant inputs.
@@ -148,12 +150,15 @@ Each imported presentation produces its own file in `<outDir>`:
 
 ### 6.2 Combined PowerPoint Mode (`--combine` with `-t pptx`)
 All presentations in the batch are aggregated into a single PowerPoint deck:
-- **Native OpenXML Sections:** In `ppt/presentation.xml`, a `<p14:sectionLst>` block defines one `<p14:section>` per song, referencing its starting slide ID.
+- **Native OpenXML Sections:** In `ppt/presentation.xml`, a `<p14:sectionLst>` block defines one `<p14:section>` per song, referencing its starting slide ID and song title.
 - **Title Slide per Song:** Each song begins with a dedicated title slide:
   - Title: 44pt bold, centered.
   - Subtitle: 20pt regular (Author, CCLI, Copyright) centered below.
   - Distinct visual layout from lyric slides.
 - **Lyric Slides:** Subsequent slides display the song's verse/chorus lyrics (32pt regular, centered).
+- **Bidirectional Section Support:**
+  - `writePptx(library)`: Writes sections and title slides when `library.presentations.length > 1`.
+  - `parsePptx(bytes)`: When `<p14:sectionLst>` is present, parses each section into its own `Presentation` object. The section's first slide is recognized as title/metadata slide if its text matches the section title or contains metadata headers (`Author:`, `CCLI:`), separating metadata from lyric slides.
 - Output file: `<outDir>/<combineName ?? "Combined_Presentations">.pptx`.
 
 ### 6.3 Combined VideoPsalm & FreeShow Mode (`--combine` with `-t vpc` or `-t show`)
@@ -167,12 +172,12 @@ Organizes multiple presentations for ProPresenter 7:
 3. Generates `<outDir>/<name>/<name>.proplaylist` using Protobuf `rv.data.Playlist`:
    - `type: TYPE_PLAYLIST`
    - `name: <name>`
-   - `cues[]`: Ordered playlist items linking to each presentation's UUID and file path.
+   - `items`: Uses `rv.data.Playlist.PlaylistItems` structure. Each item is a `PlaylistItem` (`type: 1` [TYPE_PRESENTATION]) containing `uuid` matching the presentation and `presentation.documentPath` pointing to `./<title>.pro` (`URL` with `local: 1`).
    - Users can drag this folder or playlist directly into ProPresenter 7.
 
 ---
 
-## 7. CLI Command Extensions
+## 7. CLI Command Extensions & Validation Rules
 
 ### 7.1 Auto-Detection in `convert`
 If the input to `show-converter convert <input>` is a directory, it automatically routes to batch processing:
@@ -187,7 +192,7 @@ show-converter batch <inputs...> -t <format> -o <outDir> [options]
 Options:
   -t, --to <format>         Target format (required)
   -o, --out <outDir>        Output directory (required)
-  -r, --recursive           Scan input directories recursively
+  -r, --recursive           Scan input directories recursively (default: false)
   --combine [name]          Bundle all songs into a single file (.pptx, .vpc, .show)
   --library <name>          Export as a ProPresenter library with playlist
   --on-collision <policy>   rename (default) | skip | overwrite | error
@@ -195,6 +200,15 @@ Options:
   --json                    Emit final summary as machine-readable JSON on stdout
   -f, --force               Alias for --on-collision overwrite
 ```
+
+### 7.3 Flag Compatibility & Error Handling
+Incompatible CLI options fail closed immediately with **exit code 3**:
+1. `--combine` passed with non-combinable format (`-t pro`, `-t txt`):
+   Error: `--combine is only supported for pptx, vpc, and show formats. For ProPresenter, use --library <name>.`
+2. `--library` passed with non-pro format (e.g. `-t pptx`, `-t vpc`):
+   Error: `--library is only supported when target format is 'pro'.`
+3. Both `--combine` and `--library` passed simultaneously:
+   Error: `--combine and --library are mutually exclusive.`
 
 ---
 
