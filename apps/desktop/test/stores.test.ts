@@ -345,5 +345,55 @@ describe('Zustand UI State Stores', () => {
         await mockAdapter.exists('/libraries/SundayService/SundayService.proplaylist')
       ).toBe(true);
     });
+
+    it('resets combineMode and libraryName when switching away from formats supporting them', () => {
+      useExportStore.setState({
+        targetFormat: 'vpc',
+        combineMode: true,
+        libraryName: 'MyLib',
+      });
+
+      // Switching to txt should reset combineMode (txt does not support combine) and libraryName
+      useExportStore.getState().setTargetFormat('txt');
+      expect(useExportStore.getState().targetFormat).toBe('txt');
+      expect(useExportStore.getState().combineMode).toBe(false);
+      expect(useExportStore.getState().libraryName).toBe('');
+
+      // Setting combineMode on pptx (supported)
+      useExportStore.getState().setTargetFormat('pptx');
+      useExportStore.getState().setCombineMode(true);
+      expect(useExportStore.getState().combineMode).toBe(true);
+
+      // Switching to pro should reset combineMode (pro does not support combine)
+      useExportStore.getState().setTargetFormat('pro');
+      expect(useExportStore.getState().combineMode).toBe(false);
+
+      // Setting libraryName on pro (supported)
+      useExportStore.getState().setLibraryName('SundayPro');
+      expect(useExportStore.getState().libraryName).toBe('SundayPro');
+
+      // Switching to vpc should reset libraryName (vpc does not support pro library)
+      useExportStore.getState().setTargetFormat('vpc');
+      expect(useExportStore.getState().libraryName).toBe('');
+    });
+
+    it('clears summary with clearSummary()', () => {
+      useExportStore.setState({
+        lastSummary: {
+          totalFiles: 1,
+          totalSongs: 1,
+          successCount: 1,
+          skippedCount: 0,
+          failedCount: 0,
+          warningCount: 0,
+          items: [],
+          durationMs: 10,
+        },
+      });
+
+      expect(useExportStore.getState().lastSummary).not.toBeNull();
+      useExportStore.getState().clearSummary();
+      expect(useExportStore.getState().lastSummary).toBeNull();
+    });
   });
 });

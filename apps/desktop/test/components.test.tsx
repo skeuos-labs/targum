@@ -141,6 +141,43 @@ describe('Core Desktop UI Components', () => {
         'Amazing Grace (Custom)'
       );
     });
+
+    it('renders section color dot indicator on slide cards if section has a color', async () => {
+      const coloredPresentation: Presentation = {
+        id: 'colored-pres',
+        title: 'Colored Song',
+        sourceFormat: 'unknown',
+        metadata: {},
+        sections: [
+          {
+            id: 'sec-1',
+            name: 'Intro',
+            color: '#10b981',
+            slideIds: ['slide-1'],
+          },
+        ],
+        arrangements: [],
+        slides: [
+          {
+            id: 'slide-1',
+            label: 'Slide 1',
+            items: [{ type: 'text', plainText: 'Colored slide lyric' }],
+          },
+        ],
+        warnings: [],
+      };
+
+      const bytes = toProBytes(coloredPresentation);
+      await mockAdapter.writeFile('/test/Colored.pro', bytes);
+      useSourceStore.getState().clearAll();
+      await useSourceStore.getState().addFiles(['/test/Colored.pro'], mockAdapter);
+
+      render(<ReviewWorkspace />);
+
+      const dot = screen.getByTestId('slide-section-dot');
+      expect(dot).toBeDefined();
+      expect(dot.style.backgroundColor).toBe('rgb(16, 185, 129)');
+    });
   });
 
   describe('TopBar', () => {
@@ -248,6 +285,17 @@ describe('Core Desktop UI Components', () => {
       await act(async () => {
         fireEvent.click(exportBtn);
       });
+    });
+
+    it('disables export button and shows hint when output directory is empty', () => {
+      useExportStore.setState({ outputDirectory: '' });
+
+      render(<ExportSidebar />);
+
+      expect(screen.getByText('Select destination folder')).toBeDefined();
+
+      const exportBtn = screen.getByRole('button', { name: /export 1 song/i }) as HTMLButtonElement;
+      expect(exportBtn.disabled).toBe(true);
     });
   });
 

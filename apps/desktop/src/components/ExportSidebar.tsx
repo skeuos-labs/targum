@@ -219,6 +219,11 @@ export function ExportSidebar() {
               <span>Browse...</span>
             </button>
           </div>
+          {!outputDirectory.trim() && (
+            <p className="text-[11px] text-muted-foreground">
+              Select destination folder
+            </p>
+          )}
         </div>
       </div>
 
@@ -226,11 +231,11 @@ export function ExportSidebar() {
       <div className="border-t border-border p-3 bg-card/80">
         <button
           type="button"
-          disabled={selectedCount === 0 || isExporting}
+          disabled={selectedCount === 0 || isExporting || !outputDirectory.trim()}
           onClick={handleExport}
           className={cn(
             'flex w-full items-center justify-center gap-2 rounded-md bg-primary py-2.5 text-xs font-semibold text-primary-foreground shadow-sm transition-colors',
-            selectedCount === 0 || isExporting
+            selectedCount === 0 || isExporting || !outputDirectory.trim()
               ? 'opacity-50 cursor-not-allowed'
               : 'hover:bg-primary/90'
           )}

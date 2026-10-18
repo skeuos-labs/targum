@@ -31,6 +31,7 @@ export interface ExportStoreState {
   setCollisionPolicy(policy: CollisionPolicy): void;
   setCombineMode(combine: boolean, name?: string): void;
   setLibraryName(name: string): void;
+  clearSummary(): void;
   executeExport(adapter?: PlatformAdapter): Promise<BatchSummary>;
 }
 
@@ -103,7 +104,14 @@ export const useExportStore = create<ExportStoreState>((set, get) => ({
   lastSummary: null,
 
   setTargetFormat: (format: FormatId): void => {
-    set({ targetFormat: format });
+    const supportsCombine =
+      format === 'pptx' || format === 'vpc' || format === 'freeshow';
+    const supportsLibrary = format === 'pro';
+    set({
+      targetFormat: format,
+      ...(supportsCombine ? {} : { combineMode: false }),
+      ...(supportsLibrary ? {} : { libraryName: '' }),
+    });
   },
 
   setOutputDirectory: (path: string): void => {
@@ -123,6 +131,10 @@ export const useExportStore = create<ExportStoreState>((set, get) => ({
 
   setLibraryName: (name: string): void => {
     set({ libraryName: name });
+  },
+
+  clearSummary: (): void => {
+    set({ lastSummary: null });
   },
 
   executeExport: async (adapter?: PlatformAdapter): Promise<BatchSummary> => {

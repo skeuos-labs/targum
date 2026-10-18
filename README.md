@@ -18,6 +18,87 @@ Pure TypeScript conversion engine and CLI utility for worship presentations and 
 
 ---
 
+## Desktop Application (Phase 3)
+
+Show Converter features a native cross-platform desktop application powered by **Tauri 2** and **React 19**, delivering high-performance, visual worship presentation review and batch conversions.
+
+### Quick Commands
+
+```bash
+# Run web preview dev server in browser
+npm run dev --workspace=@show-converter/desktop
+
+# Run desktop app in native Tauri dev mode (requires Rust & Tauri CLI)
+npm run tauri -- dev --workspace=@show-converter/desktop
+
+# Build self-contained production desktop installer/binary
+npm run tauri -- build --workspace=@show-converter/desktop
+```
+
+### Architecture Overview
+
+```text
+┌────────────────────────────────────────────────────────┐
+│               React 19 Frontend Webview                │
+│                                                        │
+│  ┌───────────────────────┐   ┌──────────────────────┐  │
+│  │   Zustand UI Stores   │   │  3-Column Workspace  │  │
+│  │ (source, export, theme│   │(Sidebar, Review, Exp)│  │
+│  └───────────┬───────────┘   └──────────────────────┘  │
+│              ▼                                         │
+│  ┌──────────────────────────────────────────────────┐  │
+│  │       Pure TypeScript Conversion Engine          │  │
+│  │          (@show-converter/engine)                │  │
+│  │ (In-memory parsing, canonical model, formatting) │  │
+│  └───────────────────────────┬──────────────────────┘  │
+│                              │                         │
+│               Platform Adapter Abstraction             │
+└──────────────────────────────┼─────────────────────────┘
+                               │ IPC Bridges
+┌──────────────────────────────▼─────────────────────────┐
+│               Tauri 2 Rust Host Runtime                │
+│  - @tauri-apps/plugin-dialog (Native file/dir picker)  │
+│  - @tauri-apps/plugin-fs     (Binary filesystem I/O)   │
+│  - @tauri-apps/plugin-opener (Open in file explorer)   │
+│  - @tauri-apps/api/window    (Frameless drag/controls) │
+└────────────────────────────────────────────────────────┘
+```
+
+1. **Pure TypeScript In-Webview Engine:** All parsing (Protobuf, XML, RTF, JSON), canonical normalization, format sniffing, and codec serialization execute entirely inside the webview JS runtime (`@show-converter/engine`). Zero conversion payloads traverse the Rust IPC boundary.
+2. **Lightweight Tauri Native Bridges:** The Rust host remains lean and secure, providing OS integration via Tauri 2 official plugins for native file picker dialogs, binary file read/write, native directory opening, and frameless window control.
+3. **Dual-Mode Platform Adapter (`PlatformAdapter`):** A clean interface layer that dynamically resolves to `TauriPlatformAdapter` inside Tauri webviews or `MockPlatformAdapter` / `WebPlatformAdapter` in browsers or CI test runners, allowing 100% of desktop UI behaviors and batch exports to be tested in automated React component tests without Rust dependencies.
+
+### 3-Column UI Guide
+
+The desktop workspace follows a streamlined three-column layout designed for rapid worship leader workflows:
+
+1. **Sources Sidebar (Left Column):**
+   - **File & Folder Ingestion:** Add individual files via native picker (`Add Files`), recursively scan entire folders (`Add Folder`), or drag-and-drop presentation files directly onto the workspace.
+   - **Multi-Song Accordions:** Source files containing multiple songs (e.g., VideoPsalm `.vpc` or FreeShow `.show`) expand into interactive song lists.
+   - **Song Selection:** Individual checkboxes per song and a global "Select All" toggle allow selective batch export.
+   - **Badge Indicators:** Real-time badge indicators for source formats and presentation counts.
+
+2. **Review Workspace (Center Column):**
+   - **Title & Metadata Editing:** Editable presentation title input updating canonical models in real time, with metadata cards for Author, CCLI license number, and Copyright.
+   - **Colored Section Chips:** Visual section badges (Verse, Chorus, Bridge, Tag) displaying section names, slide counts, and custom section theme colors.
+   - **ProPresenter-Style 16:9 Slide Preview:** Responsive 16:9 widescreen slide cards with dark background theme, slide index badges (`1/17`), lyric text previews, and section color dot indicators.
+   - **Fidelity Warnings Banner:** Non-fatal format diagnostic alerts (`[PRO_STYLES_NOT_EXTRACTED]`, `[VPC_TAG_UNMAPPED]`) displayed without blocking workflows.
+
+3. **Export Sidebar (Right Column):**
+   - **Target Format Selector:** One-click format selection across ProPresenter 7 (`.pro`), VideoPsalm (`.vpc`), FreeShow (`.show`), Plain Text (`.txt`), and PowerPoint (`.pptx`).
+   - **Multi-Song Options:**
+     - *Combine into single file:* Merges selected songs into a single presentation deck with sections (`.pptx`, `.vpc`, `.show`).
+     - *Library folder & playlist:* Generates a named ProPresenter 7 library folder containing individual `.pro` files alongside an ordered `.proplaylist` playlist file.
+   - **Collision Policy:** Configurable overwrite protection (`rename`, `skip`, `overwrite`, `error`).
+   - **Output Destination:** Output folder selection with real-time validation and helpful hint triggers.
+   - **Export Progress Modal:** Modal displaying real-time item progress (`3 / 20`), progress percentage bar, and final summary report with direct "Open Output Folder" action.
+
+4. **Window Controls & Theme Switcher:**
+   - Frameless custom title bar with window drag region, minimize, maximize/restore, and close buttons.
+   - Theme toggle supporting **Light**, **Dark**, and **System** color themes with persistence across app restarts.
+
+---
+
 ## CLI Usage
 
 The package ships with an executable binary `show-converter` (Node.js 20+ zero external CLI dependencies using native `node:util.parseArgs`).
@@ -531,31 +612,27 @@ Common diagnostic codes:
 
 ```text
 show-converter/
-├── src/
-│   ├── index.ts               # Public engine exports
-│   ├── canonical/             # Canonical schema, types, warnings, normalizers
-│   ├── formats/               # Format codecs (isolated directories)
-│   │   ├── propresenter/      # .pro / .pro6 Protobuf and XML codecs, RTF codec
-│   │   ├── videopsalm/        # .vpc AES ZIP codec, JSON dialect parser/serializer
-│   │   ├── freeshow/          # .show clean-room JSON codec
-│   │   ├── txt/               # .txt marker codec
-│   │   └── pptx/              # .pptx OpenXML codec with <p14:sectionLst> sections
-│   ├── batch/                 # Batch processing engine (Phase 2)
-│   │   ├── index.ts           # Public batch exports
-│   │   ├── types.ts           # Batch options, progress, item results, summary
-│   │   ├── scanner.ts         # Recursive input discovery, sniffing, deduplication
-│   │   ├── collision.ts       # Collision policies (rename, skip, overwrite, error)
-│   │   ├── playlist.ts        # ProPresenter 7 rv.data.Playlist protobuf generator
-│   │   └── orchestrator.ts    # Fault-tolerant batchConvert execution engine
-│   ├── pipeline/              # Format registry, detector, convert orchestration
-│   ├── cli/                   # CLI interface (parseArgs, commands, streaming)
-│   └── fixtures/              # Deterministic test fixtures ("Amazing Grace")
-├── test/
-│   ├── unit/                  # Codec, canonical, batch, and CLI unit tests
-│   ├── roundtrip/             # 20-pair cross-format roundtrip matrix tests
-│   └── corpus/                # Real-world sample file verification suite
-├── docs/                      # Phase 1 and Phase 2 reports and design specifications
-├── package.json
+├── packages/
+│   └── engine/                # Core conversion engine (@show-converter/engine)
+│       ├── src/
+│       │   ├── canonical/     # Canonical schema, types, warnings, normalizers
+│       │   ├── formats/       # Codecs: propresenter, videopsalm, freeshow, txt, pptx
+│       │   ├── batch/         # Batch engine, scanner, collision, playlist
+│       │   ├── pipeline/      # Format registry, detector, convert orchestration
+│       │   ├── cli/           # CLI interface (parseArgs, commands, streaming)
+│       │   └── fixtures/      # Deterministic test fixtures ("Amazing Grace")
+│       └── test/              # 23 test suites (unit, roundtrip, corpus)
+├── apps/
+│   └── desktop/               # Native desktop GUI app (@show-converter/desktop)
+│       ├── src/
+│       │   ├── components/    # TopBar, StatusBar, SourcesSidebar, ReviewWorkspace, ExportSidebar
+│       │   ├── state/         # Zustand stores (sourceStore, exportStore, themeStore)
+│       │   ├── platform/      # PlatformAdapter abstraction (Tauri, Mock, Web)
+│       │   └── App.tsx        # Main 3-column layout shell
+│       ├── src-tauri/         # Tauri 2 Rust application host and OS bridges
+│       └── test/              # Vitest + React Testing Library component & E2E tests
+├── docs/                      # Phase 1, Phase 2, and Phase 3 milestone reports & specs
+├── package.json               # Monorepo workspaces configuration
 └── tsconfig.json
 ```
 

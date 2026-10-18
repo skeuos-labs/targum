@@ -9,7 +9,8 @@ import { useExportStore } from '../state/exportStore';
 import { getPlatformAdapter } from '../platform';
 
 export function BatchProgressModal() {
-  const { isExporting, progress, lastSummary, outputDirectory } = useExportStore();
+  const { isExporting, progress, lastSummary, outputDirectory, clearSummary } =
+    useExportStore();
   const adapter = getPlatformAdapter();
 
   if (!isExporting && !lastSummary) {
@@ -17,7 +18,7 @@ export function BatchProgressModal() {
   }
 
   const handleClose = () => {
-    useExportStore.setState({ lastSummary: null });
+    clearSummary();
   };
 
   const handleOpenFolder = () => {

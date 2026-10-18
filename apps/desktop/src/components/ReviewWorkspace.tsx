@@ -145,10 +145,19 @@ export function ReviewWorkspace() {
                 className="group relative flex flex-col aspect-video rounded-lg border border-border bg-zinc-950 text-zinc-100 p-3 shadow-sm overflow-hidden select-text"
               >
                 <div className="flex items-center justify-between pb-1 border-b border-zinc-800/60 text-[11px]">
-                  <span className="font-semibold text-zinc-300 truncate max-w-[120px]">
-                    {sec?.name || slide.label || 'Slide'}
-                  </span>
-                  <span className="font-mono text-[10px] text-zinc-400">
+                  <div className="flex items-center gap-1.5 truncate max-w-[140px]">
+                    {sec?.color && (
+                      <span
+                        data-testid="slide-section-dot"
+                        className="h-2 w-2 rounded-full shrink-0"
+                        style={{ backgroundColor: sec.color }}
+                      />
+                    )}
+                    <span className="font-semibold text-zinc-300 truncate">
+                      {sec?.name || slide.label || 'Slide'}
+                    </span>
+                  </div>
+                  <span className="font-mono text-[10px] text-zinc-400 shrink-0">
                     {index + 1}/{activeSong.slides.length}
                   </span>
                 </div>
