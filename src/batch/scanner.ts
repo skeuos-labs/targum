@@ -3,16 +3,11 @@ import path from 'node:path';
 import type { Warning } from '../canonical/types.js';
 import { warning } from '../canonical/warnings.js';
 import { detectFormat } from '../pipeline/detector.js';
+import { FORMAT_REGISTRY } from '../pipeline/registry.js';
 
-const SUPPORTED_EXTENSIONS = new Set([
-  '.pro',
-  '.pro6',
-  '.vpc',
-  '.json',
-  '.show',
-  '.txt',
-  '.pptx',
-]);
+const SUPPORTED_EXTENSIONS = new Set(
+  FORMAT_REGISTRY.flatMap((f) => f.extensions.map((ext) => ext.toLowerCase()))
+);
 
 /**
  * Reads up to `maxBytes` from head of file for format sniffing.
@@ -180,7 +175,7 @@ export async function scanBatchInputs(
     }
   }
 
-  discoveredFiles.sort((a, b) => a.localeCompare(b));
+  discoveredFiles.sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
 
   return {
     files: discoveredFiles,
