@@ -224,26 +224,19 @@ describe('Format Registry (FORMAT_REGISTRY)', () => {
       expect(singleRes.ok).toBe(true);
     });
 
-    it('PowerPoint export enforces exactly one presentation', async () => {
-      const pptx = getFormat('pptx');
-      expect(pptx?.exportBytes).toBeDefined();
-
-      const multiRes = await pptx!.exportBytes!({ presentations: [p1, p2] });
-      expect(multiRes.ok).toBe(false);
-
-      const singleRes = await pptx!.exportBytes!({ presentations: [p1] });
-      expect(singleRes.ok).toBe(true);
-    });
-
-    it('Multi-presentation exporters (vpc, freeshow) support multiple presentations', async () => {
+    it('Multi-presentation exporters (vpc, freeshow, pptx) support multiple presentations', async () => {
       const vpc = getFormat('vpc');
       const fs = getFormat('freeshow');
+      const pptx = getFormat('pptx');
 
       const vpcRes = await vpc!.exportBytes!({ presentations: [p1, p2] });
       expect(vpcRes.ok).toBe(true);
 
       const fsRes = await fs!.exportBytes!({ presentations: [p1, p2] });
       expect(fsRes.ok).toBe(true);
+
+      const pptxRes = await pptx!.exportBytes!({ presentations: [p1, p2] });
+      expect(pptxRes.ok).toBe(true);
     });
   });
 });

@@ -101,3 +101,18 @@ export {
   type ConvertCommandOptions,
 } from './cli/commands/convert.js';
 
+// Batch processing
+export {
+  batchConvert,
+  scanBatchInputs,
+  resolveOutputPath,
+  generateProPlaylist,
+  type CollisionPolicy,
+  type BatchConvertOptions,
+  type BatchItemResult,
+  type BatchSummary,
+  type BatchProgressCallback,
+  type ResolvedOutputPath,
+  type PlaylistPresentationEntry,
+} from './batch/index.js';
+

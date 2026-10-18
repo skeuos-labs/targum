@@ -236,14 +236,6 @@ export const FORMAT_REGISTRY: readonly FormatDef[] = Object.freeze([
           error: new Error('Cannot write PPTX with no presentations.'),
         };
       }
-      if (library.presentations.length !== 1) {
-        return {
-          ok: false,
-          error: new Error(
-            `Cannot write PPTX with multiple presentations (expected exactly 1, got ${library.presentations.length}).`
-          ),
-        };
-      }
       const res = await writePptx(library);
       if (!res.ok) {
         return { ok: false, error: res.error };
