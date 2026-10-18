@@ -69,7 +69,7 @@ describe('CLI Batch Command & Folder Conversion Routing', () => {
   it('converts all files in folder with batch command and exits 0', () => {
     const res = runCli(['batch', testFolder, '-t', 'pro', '-o', outDir]);
     expect(res.status).toBe(0);
-    expect(res.stdout).toContain('Batch complete: 2/2 succeeded');
+    expect(res.stdout).toContain('Batch complete: 2/2 songs succeeded across 2 files');
     expect(fs.existsSync(path.join(outDir, 'Amazing Grace.pro'))).toBe(true);
     expect(fs.existsSync(path.join(outDir, 'How Great Thou Art.pro'))).toBe(true);
   });
@@ -77,7 +77,7 @@ describe('CLI Batch Command & Folder Conversion Routing', () => {
   it('auto-detects folder in convert command and delegates to batch with exit 0', () => {
     const res = runCli(['convert', testFolder, '-t', 'txt', '-o', outDir]);
     expect(res.status).toBe(0);
-    expect(res.stdout).toContain('Batch complete: 2/2 succeeded');
+    expect(res.stdout).toContain('Batch complete: 2/2 songs succeeded across 2 files');
     expect(fs.existsSync(path.join(outDir, 'Amazing Grace.txt'))).toBe(true);
     expect(fs.existsSync(path.join(outDir, 'How Great Thou Art.txt'))).toBe(true);
   });
@@ -106,6 +106,49 @@ describe('CLI Batch Command & Folder Conversion Routing', () => {
       expect(parsed.value.presentations.map((p) => p.title)).toContain('Amazing Grace');
       expect(parsed.value.presentations.map((p) => p.title)).toContain('How Great Thou Art');
     }
+  });
+
+  it('exports ProPresenter library and playlist with --library <name> and exits 0', () => {
+    const libName = 'SundaySongs';
+    const res = runCli([
+      'batch',
+      testFolder,
+      '-t',
+      'pro',
+      '-o',
+      outDir,
+      '--library',
+      libName,
+    ]);
+    expect(res.status).toBe(0);
+    expect(res.stdout).toContain('Batch complete: 2/2 songs succeeded across 2 files');
+
+    const libDir = path.join(outDir, libName);
+    expect(fs.existsSync(libDir)).toBe(true);
+    expect(fs.existsSync(path.join(libDir, 'Amazing Grace.pro'))).toBe(true);
+    expect(fs.existsSync(path.join(libDir, 'How Great Thou Art.pro'))).toBe(true);
+
+    const playlistFile = path.join(libDir, `${libName}.proplaylist`);
+    expect(fs.existsSync(playlistFile)).toBe(true);
+    const playlistStat = fs.statSync(playlistFile);
+    expect(playlistStat.size).toBeGreaterThan(0);
+  });
+
+  it('exits with code 1 under --strict when batch items have warnings', () => {
+    const res = runCli([
+      'batch',
+      testFolder,
+      '-t',
+      'vpc',
+      '-o',
+      outDir,
+      '--strict',
+      '-f',
+    ]);
+    expect(res.status).toBe(1);
+    expect(res.stdout).toContain('Batch complete:');
+    expect(res.stderr).toMatch(/\[(WARN|INFO)\]/);
+    expect(res.stderr).toContain('PRO_STYLES_NOT_EXTRACTED');
   });
 
   it('fails closed with exit code 3 for incompatible flags', () => {
@@ -174,13 +217,13 @@ describe('CLI Batch Command & Folder Conversion Routing', () => {
 
     const res = runCli(['batch', mixedFolder, '-t', 'txt', '-o', outDir]);
     expect(res.status).toBe(2);
-    expect(res.stdout).toContain('1/2 succeeded');
+    expect(res.stdout).toContain('1/1 songs succeeded across 2 files');
     expect(res.stdout).toContain('1 failed');
     // Valid file must have converted
     expect(fs.existsSync(path.join(outDir, 'Amazing Grace.txt'))).toBe(true);
   });
 
-  it('emits valid JSON BatchSummary to stdout when --json is provided', () => {
+  it('emits valid JSON BatchSummary to stdout and progress to stderr when --json is provided', () => {
     const res = runCli(['batch', testFolder, '-t', 'txt', '-o', outDir, '--json']);
     expect(res.status).toBe(0);
     const summary = JSON.parse(res.stdout);
@@ -191,5 +234,8 @@ describe('CLI Batch Command & Folder Conversion Routing', () => {
     expect(summary).toHaveProperty('items');
     expect(Array.isArray(summary.items)).toBe(true);
     expect(summary.items.length).toBe(2);
+    // Stderr retains progress lines and diagnostics
+    expect(res.stderr).toContain('song1.pro');
+    expect(res.stderr).toContain('song2.vpc');
   });
 });

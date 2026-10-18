@@ -134,26 +134,26 @@ export async function executeBatchCommand(
       exitCode = 1;
     }
 
-    if (rawOptions.json) {
-      return {
-        exitCode,
-        stdout: JSON.stringify(summary, null, 2),
-        stderr: '',
-      };
-    }
-
-    const stdoutLines = [
-      `Batch complete: ${summary.successCount}/${summary.totalFiles} succeeded, ${summary.skippedCount} skipped, ${summary.failedCount} failed (${summary.durationMs}ms)`,
-    ];
-    if (summary.combinedOutputPath) {
-      stdoutLines.push(`Combined output: ${summary.combinedOutputPath}`);
-    }
-
     const stderrLines = [...progressLines];
     for (const item of summary.items) {
       for (const w of item.warnings ?? []) {
         stderrLines.push(formatCliWarning(w));
       }
+    }
+
+    if (rawOptions.json) {
+      return {
+        exitCode,
+        stdout: JSON.stringify(summary, null, 2),
+        stderr: stderrLines.join('\n'),
+      };
+    }
+
+    const stdoutLines = [
+      `Batch complete: ${summary.successCount}/${summary.totalSongs} songs succeeded across ${summary.totalFiles} files, ${summary.skippedCount} skipped, ${summary.failedCount} failed (${summary.durationMs}ms)`,
+    ];
+    if (summary.combinedOutputPath) {
+      stdoutLines.push(`Combined output: ${summary.combinedOutputPath}`);
     }
 
     return {
