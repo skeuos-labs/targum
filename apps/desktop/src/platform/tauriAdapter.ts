@@ -67,7 +67,7 @@ export class TauriPlatformAdapter implements PlatformAdapter {
     };
 
     await walk(path);
-    return filePaths;
+    return filePaths.sort();
   }
 
   async exists(path: string): Promise<boolean> {
