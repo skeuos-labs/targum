@@ -164,9 +164,9 @@ describe('Real-World Corpus Import Suite', () => {
       expect(res.ok).toBe(true);
       if (!res.ok) return;
 
-      expect(res.value.presentations).toHaveLength(1);
+      expect(res.value.presentations).toHaveLength(2);
       const pres = res.value.presentations[0]!;
-      expect(pres.title).toBeTruthy();
+      expect(pres.title).toBe('How Great Thou Art');
       expect(pres.slides.length).toBeGreaterThan(0);
     });
   }

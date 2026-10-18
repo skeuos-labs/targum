@@ -321,14 +321,11 @@ describe('PowerPoint (.pptx) Text-Only OpenXML Codec', () => {
       }
     });
 
-    it('fails closed when writing a library with multiple presentations', async () => {
+    it('successfully writes a library with multiple presentations', async () => {
       const res = await writePptx({
         presentations: [AMAZING_GRACE, AMAZING_GRACE],
       });
-      expect(res.ok).toBe(false);
-      if (!res.ok) {
-        expect(res.error).toBeInstanceOf(Error);
-      }
+      expect(res.ok).toBe(true);
     });
   });
 
@@ -345,16 +342,23 @@ describe('PowerPoint (.pptx) Text-Only OpenXML Codec', () => {
       if (!res.ok) return;
 
       const { presentations } = res.value;
-      expect(presentations).toHaveLength(1);
+      expect(presentations).toHaveLength(2);
 
-      const song = presentations[0]!;
-      expect(song.sourceFormat).toBe('pptx');
-      expect(song.title).toBe('Presentation created with ELC\'s Presentation Generator');
-      expect(song.slides).toHaveLength(15);
+      const song1 = presentations[0]!;
+      expect(song1.sourceFormat).toBe('pptx');
+      expect(song1.title).toBe('How Great Thou Art');
+      expect(song1.slides).toHaveLength(7);
 
       // Slide 1 has known text
-      const slide1Text = song.slides[0]!.items[0]?.plainText;
+      const slide1Text = song1.slides[0]!.items[0]?.plainText;
       expect(slide1Text).toContain('OH LORD, MY GOD');
+
+      const song2 = presentations[1]!;
+      expect(song2.sourceFormat).toBe('pptx');
+      expect(song2.title).toBe('Blessed Asurance');
+      expect(song2.slides).toHaveLength(8);
+      const song2Slide1Text = song2.slides[0]!.items[0]?.plainText;
+      expect(song2Slide1Text).toContain('Blessed assurance');
     });
   });
 });
