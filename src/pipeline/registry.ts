@@ -1,4 +1,4 @@
-import type { Library, Warning } from '../canonical/index.js';
+import type { FormatId, Library, Warning } from '../canonical/index.js';
 import { parseFreeShow, writeFreeShow } from '../formats/freeshow/index.js';
 import { parsePptx, writePptx } from '../formats/pptx/index.js';
 import { parsePro, parsePro6, writePro } from '../formats/propresenter/index.js';
@@ -9,14 +9,7 @@ import {
   writeVpc,
 } from '../formats/videopsalm/index.js';
 
-export type FormatId =
-  | 'pro'
-  | 'pro6'
-  | 'vpc'
-  | 'json'
-  | 'freeshow'
-  | 'txt'
-  | 'pptx';
+export type { FormatId };
 
 export type Result<T> =
   | { ok: true; value: T; warnings: Warning[] }

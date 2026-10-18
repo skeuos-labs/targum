@@ -12,6 +12,15 @@ export type SourceFormat =
   | 'pptx'
   | 'unknown';
 
+export type FormatId =
+  | 'pro'
+  | 'pro6'
+  | 'vpc'
+  | 'json'
+  | 'freeshow'
+  | 'txt'
+  | 'pptx';
+
 export interface Metadata {
   author?: string;
   copyright?: string;
