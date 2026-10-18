@@ -7,7 +7,7 @@ import { parseTxt, writeTxt } from '../../src/formats/txt/index.js';
 
 const ASSETS_DIR = resolve(
   import.meta.dirname,
-  '../../../assets-for-testing-purpose'
+  '../../../../../assets-for-testing-purpose'
 );
 
 function readAsset(fileName: string): Uint8Array {

@@ -3,10 +3,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-const CLI_PATH = path.resolve(process.cwd(), 'dist/cli/index.js');
+const CLI_PATH = path.resolve(import.meta.dirname, '../../dist/cli/index.js');
 const ASSETS_DIR = path.resolve(
   import.meta.dirname,
-  '../../../assets-for-testing-purpose',
+  '../../../../../assets-for-testing-purpose',
 );
 const IZY_PRO = path.resolve(ASSETS_DIR, 'IZY-original.pro');
 const FACADE_VPC = path.resolve(ASSETS_DIR, 'façade.vpc');

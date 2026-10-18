@@ -1,0 +1,37 @@
+{
+  "name": "@show-converter/engine",
+  "version": "1.0.0",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "show-converter": "./dist/cli/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "pretest": "npm run build",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@zip.js/zip.js": "^2.7.53",
+    "fast-xml-parser": "^4.5.0",
+    "jsonrepair": "^3.15.0",
+    "protobufjs": "^7.3.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.5",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.2"
+  },
+  "overrides": {
+    "tinypool": "^2.1.2"
+  }
+}

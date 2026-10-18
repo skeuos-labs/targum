@@ -6,7 +6,7 @@ import { AMAZING_GRACE } from '../../src/fixtures/amazing-grace.js';
 import { parsePptx } from '../../src/formats/pptx/index.js';
 import { exportPresentation } from '../../src/pipeline/convert.js';
 
-const CLI_PATH = path.resolve(process.cwd(), 'dist/cli/index.js');
+const CLI_PATH = path.resolve(import.meta.dirname, '../../dist/cli/index.js');
 const TMP_DIR = path.resolve(process.cwd(), 'tmp-cli-batch-test');
 
 function runCli(args: string[]) {

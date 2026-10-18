@@ -14,7 +14,7 @@ import { parsePptx, writePptx } from '../../src/formats/pptx/index.js';
 
 const ASSETS_DIR = resolve(
   import.meta.dirname,
-  '../../../assets-for-testing-purpose'
+  '../../../../../assets-for-testing-purpose'
 );
 
 function readAssetIfExists(fileName: string): Uint8Array | null {

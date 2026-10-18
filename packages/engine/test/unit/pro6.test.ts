@@ -5,7 +5,7 @@ import { parsePro6 } from '../../src/formats/propresenter/index.js';
 
 const ASSETS_DIR = resolve(
   import.meta.dirname,
-  '../../../assets-for-testing-purpose'
+  '../../../../../assets-for-testing-purpose'
 );
 
 function readAsset(fileName: string): Uint8Array {

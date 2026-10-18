@@ -7,7 +7,7 @@ import { executeInspectCommand } from '../../src/cli/commands/inspect.js';
 
 const ASSETS_DIR = path.resolve(
   import.meta.dirname,
-  '../../../assets-for-testing-purpose',
+  '../../../../../assets-for-testing-purpose',
 );
 
 const IZY_PRO_PATH = path.resolve(ASSETS_DIR, 'IZY-original.pro');
