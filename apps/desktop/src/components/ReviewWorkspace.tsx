@@ -17,6 +17,13 @@ import { getPlatformAdapter } from '../platform';
 import { useDropTarget } from '../lib/useDropTarget';
 import { DropOverlay } from './DropOverlay';
 import { useDndStore } from '../state/dndStore';
+import { Button } from './ui/button';
+import { Badge } from './ui/badge';
+import { Card, CardHeader, CardTitle } from './ui/card';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { Textarea } from './ui/textarea';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 
 export type ReviewTab = 'overview' | 'sections' | 'slides' | 'warnings' | 'json';
 
@@ -390,13 +397,21 @@ export function ReviewWorkspace() {
       />
 
       {/* 2. Header & Tab Navigation Bar */}
+      <Tabs
+        value={activeTab}
+        onValueChange={(v) => setActiveTab(v as ReviewTab)}
+        className="flex min-h-0 flex-1 flex-col overflow-hidden"
+      >
       <header className="px-6 pt-4 pb-0 bg-card border-b border-border shrink-0">
         <div className="flex items-center justify-between gap-4">
           {/* File / Song Breadcrumb */}
           <div className="flex items-center gap-2.5 min-w-0">
-            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-mono font-bold uppercase tracking-wider bg-primary/10 text-primary border border-primary/20 shrink-0">
+            <Badge
+              variant="outline"
+              className="h-auto shrink-0 rounded border-primary/20 bg-primary/10 px-2 py-0.5 font-mono text-[11px] font-bold uppercase tracking-wider text-primary"
+            >
               {currentSource.format.toUpperCase()}
-            </span>
+            </Badge>
             <div className="flex items-center gap-1.5 text-sm font-semibold text-foreground truncate min-w-0">
               <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
               <span className="truncate text-muted-foreground" title={currentSource.name}>
@@ -411,20 +426,25 @@ export function ReviewWorkspace() {
 
           {/* Diagnostics Badge */}
           {allWarnings.length === 0 ? (
-            <span className="shrink-0 px-2.5 py-0.5 text-[11px] font-semibold rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-              OK
-            </span>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setActiveTab('warnings')}
-              className="shrink-0 px-2.5 py-0.5 text-[11px] font-semibold rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 hover:bg-amber-500/25 transition-colors cursor-pointer flex items-center gap-1"
+            <Badge
+              variant="outline"
+              className="shrink-0 border-emerald-500/20 bg-emerald-500/10 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400"
             >
-              <AlertTriangle className="w-3.5 h-3.5" />
+              OK
+            </Badge>
+          ) : (
+            <Button
+              type="button"
+              variant="outline"
+              size="xs"
+              onClick={() => setActiveTab('warnings')}
+              className="shrink-0 rounded-full border-amber-500/30 bg-amber-500/15 text-[11px] font-semibold text-amber-600 hover:bg-amber-500/25 hover:text-amber-600 dark:text-amber-400"
+            >
+              <AlertTriangle data-icon="inline-start" />
               <span>
                 {allWarnings.length} {allWarnings.length === 1 ? 'warning' : 'warnings'}
               </span>
-            </button>
+            </Button>
           )}
         </div>
 
@@ -432,7 +452,10 @@ export function ReviewWorkspace() {
         <p className="text-xs text-muted-foreground mt-1 mb-3 truncate">{subtitleLine}</p>
 
         {/* 5 Tabs Bar */}
-        <nav role="tablist" className="flex gap-6 border-t border-border/60 pt-2 -mb-px">
+        <TabsList
+          variant="line"
+          className="h-auto w-full justify-start gap-6 rounded-none border-t border-border/60 bg-transparent p-0 pt-2"
+        >
           {[
             { id: 'overview' as ReviewTab, label: 'Overview' },
             { id: 'sections' as ReviewTab, label: 'Sections' },
@@ -443,61 +466,57 @@ export function ReviewWorkspace() {
               count: allWarnings.length,
             },
             { id: 'json' as ReviewTab, label: 'Raw JSON' },
-          ].map((tab) => {
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                role="tab"
-                type="button"
-                aria-selected={isActive}
-                onClick={() => setActiveTab(tab.id)}
-                className={`pb-2.5 text-xs font-semibold uppercase tracking-wider transition-colors cursor-pointer flex items-center gap-1.5 border-b-2 select-none ${
-                  isActive
-                    ? 'border-primary text-primary'
-                    : 'border-transparent text-muted-foreground hover:text-foreground hover:border-muted-foreground/40'
-                }`}
-              >
-                <span>{tab.label}</span>
-                {tab.count !== undefined && tab.count > 0 && (
-                  <span className="px-1.5 py-0.2 text-[10px] font-bold rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 tabular-nums">
-                    {tab.count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </nav>
+          ].map((tab) => (
+            <TabsTrigger
+              key={tab.id}
+              value={tab.id}
+              className="border-b-2 border-transparent pb-2.5 text-xs font-semibold uppercase tracking-wider data-active:border-primary data-active:text-primary"
+            >
+              <span>{tab.label}</span>
+              {tab.count !== undefined && tab.count > 0 && (
+                <span className="rounded-full border border-amber-500/30 bg-amber-500/20 px-1.5 py-0.2 text-[10px] font-bold tabular-nums text-amber-600 dark:text-amber-400">
+                  {tab.count}
+                </span>
+              )}
+            </TabsTrigger>
+          ))}
+        </TabsList>
       </header>
 
       {/* Main Tab Content Body */}
       <div className="flex-1 overflow-y-auto p-6 min-h-0 select-text">
         {/* TAB 1: OVERVIEW */}
-        {activeTab === 'overview' && (
+        <TabsContent value="overview" className="mt-0">
           <div className="space-y-6 max-w-5xl mx-auto">
             {/* Upper Card — Metadata Editor */}
-            <div className="rounded-lg border border-border bg-card p-5 shadow-sm space-y-4">
-              <div className="flex items-center justify-between border-b border-border/60 pb-3">
-                <div className="flex items-center gap-2">
-                  <Tag className="w-4 h-4 text-primary" />
-                  <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Metadata Editor
-                  </h3>
-                </div>
+            <Card className="gap-4 border-border py-5 shadow-sm">
+              <CardHeader className="flex flex-row items-center justify-between border-b border-border/60 pb-3">
+                <CardTitle className="m-0">
+                  <span className="flex items-center gap-2">
+                    <Tag className="w-4 h-4 text-primary" />
+                    <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      Metadata Editor
+                    </span>
+                  </span>
+                </CardTitle>
                 {isSavedFlash && (
-                  <span className="text-emerald-500 font-semibold text-xs flex items-center gap-1 animate-in fade-in duration-200">
+                  <span className="flex items-center gap-1 text-xs font-semibold text-emerald-500 animate-in fade-in duration-200">
                     <Check className="w-3.5 h-3.5" />
                     <span>Saved ✓</span>
                   </span>
                 )}
-              </div>
+              </CardHeader>
 
               {/* Title Input */}
-              <div>
-                <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block mb-1">
+              <div className="flex flex-col gap-1.5">
+                <Label
+                  htmlFor="meta-title"
+                  className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider"
+                >
                   Song Title
-                </label>
-                <input
+                </Label>
+                <Input
+                  id="meta-title"
                   type="text"
                   aria-label="Song Title"
                   value={activeSong.title}
@@ -505,17 +524,21 @@ export function ReviewWorkspace() {
                     updateSongTitle(currentSource.id, activeSong.id, e.target.value)
                   }
                   onBlur={triggerSavedFlash}
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-base font-bold text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                  className="h-9 px-3 text-base font-bold"
                 />
               </div>
 
               {/* Primary Grid: Author, CCLI, Copyright */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                  <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block mb-1">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <div className="flex flex-col gap-1.5">
+                  <Label
+                    htmlFor="meta-author"
+                    className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider"
+                  >
                     Author
-                  </label>
-                  <input
+                  </Label>
+                  <Input
+                    id="meta-author"
                     type="text"
                     aria-label="Author"
                     value={activeSong.metadata.author || ''}
@@ -526,14 +549,18 @@ export function ReviewWorkspace() {
                       })
                     }
                     onBlur={triggerSavedFlash}
-                    className="w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                    className="h-8 px-2.5 text-xs"
                   />
                 </div>
-                <div>
-                  <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block mb-1">
+                <div className="flex flex-col gap-1.5">
+                  <Label
+                    htmlFor="meta-ccli"
+                    className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider"
+                  >
                     CCLI #
-                  </label>
-                  <input
+                  </Label>
+                  <Input
+                    id="meta-ccli"
                     type="text"
                     aria-label="CCLI #"
                     value={activeSong.metadata.ccli || ''}
@@ -544,14 +571,18 @@ export function ReviewWorkspace() {
                       })
                     }
                     onBlur={triggerSavedFlash}
-                    className="w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                    className="h-8 px-2.5 text-xs"
                   />
                 </div>
-                <div>
-                  <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block mb-1">
+                <div className="flex flex-col gap-1.5">
+                  <Label
+                    htmlFor="meta-copyright"
+                    className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider"
+                  >
                     Copyright
-                  </label>
-                  <input
+                  </Label>
+                  <Input
+                    id="meta-copyright"
                     type="text"
                     aria-label="Copyright"
                     value={activeSong.metadata.copyright || ''}
@@ -562,42 +593,44 @@ export function ReviewWorkspace() {
                       })
                     }
                     onBlur={triggerSavedFlash}
-                    className="w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                    className="h-8 px-2.5 text-xs"
                   />
                 </div>
               </div>
 
               {/* Collapsible Drawer Toggle */}
               <div className="pt-2">
-                <button
+                <Button
                   type="button"
+                  variant="link"
+                  size="xs"
                   onClick={() => setIsDrawerOpen(!isDrawerOpen)}
-                  className="flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline cursor-pointer select-none"
+                  className="h-auto p-0 select-none"
                 >
                   {isDrawerOpen ? (
                     <>
-                      <ChevronUp className="w-3.5 h-3.5" />
+                      <ChevronUp data-icon="inline-start" />
                       <span>Hide Extended Metadata</span>
                     </>
                   ) : (
                     <>
-                      <ChevronDown className="w-3.5 h-3.5" />
+                      <ChevronDown data-icon="inline-start" />
                       <span>View More Metadata</span>
                     </>
                   )}
-                </button>
+                </Button>
 
                 {isDrawerOpen && (
-                  <div className="mt-3 pt-3 border-t border-border/60 space-y-3 animate-in fade-in duration-150">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label
+                  <div className="mt-3 animate-in fade-in duration-150 space-y-3 border-t border-border/60 pt-3">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <div className="flex flex-col gap-1.5">
+                        <Label
                           htmlFor="meta-language"
-                          className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block mb-1"
+                          className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider"
                         >
                           Language
-                        </label>
-                        <input
+                        </Label>
+                        <Input
                           id="meta-language"
                           type="text"
                           aria-label="Language"
@@ -609,17 +642,17 @@ export function ReviewWorkspace() {
                             })
                           }
                           onBlur={triggerSavedFlash}
-                          className="w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                          className="h-8 px-2.5 text-xs"
                         />
                       </div>
-                      <div>
-                        <label
+                      <div className="flex flex-col gap-1.5">
+                        <Label
                           htmlFor="meta-theme"
-                          className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block mb-1"
+                          className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider"
                         >
                           Theme Name
-                        </label>
-                        <input
+                        </Label>
+                        <Input
                           id="meta-theme"
                           type="text"
                           aria-label="Theme Name"
@@ -631,19 +664,19 @@ export function ReviewWorkspace() {
                             })
                           }
                           onBlur={triggerSavedFlash}
-                          className="w-full rounded-md border border-input bg-background px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                          className="h-8 px-2.5 text-xs"
                         />
                       </div>
                     </div>
 
-                    <div>
-                      <label
+                    <div className="flex flex-col gap-1.5">
+                      <Label
                         htmlFor="meta-notes"
-                        className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block mb-1"
+                        className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider"
                       >
                         Notes
-                      </label>
-                      <textarea
+                      </Label>
+                      <Textarea
                         id="meta-notes"
                         rows={3}
                         aria-label="Notes"
@@ -655,7 +688,7 @@ export function ReviewWorkspace() {
                           })
                         }
                         onBlur={triggerSavedFlash}
-                        className="w-full rounded-md border border-input bg-background p-2.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                        className="p-2.5 text-xs"
                       />
                     </div>
 
@@ -674,34 +707,34 @@ export function ReviewWorkspace() {
                   </div>
                 )}
               </div>
-            </div>
+            </Card>
 
             {/* Metrics Strip */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
+              <Card size="sm" className="gap-1 shadow-sm">
                 <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">
                   Source Format
                 </span>
                 <span className="text-sm font-bold text-foreground">
                   {formatSourceFormatLabel(activeSong.sourceFormat || currentSource.format)}
                 </span>
-              </div>
-              <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
+              </Card>
+              <Card size="sm" className="gap-1 shadow-sm">
                 <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">
                   Total Sections
                 </span>
                 <span className="text-xl font-extrabold text-foreground">{sectionCount}</span>
-              </div>
-              <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
+              </Card>
+              <Card size="sm" className="gap-1 shadow-sm">
                 <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground block mb-1">
                   Total Slides
                 </span>
                 <span className="text-xl font-extrabold text-foreground">{slideCount}</span>
-              </div>
+              </Card>
             </div>
 
             {/* Arrangement Flow */}
-            <div className="rounded-lg border border-border bg-card p-5 shadow-sm space-y-3">
+            <Card className="gap-3 border-border p-5 shadow-sm space-y-3">
               <div className="flex items-center gap-2 border-b border-border/60 pb-2.5">
                 <Music className="w-4 h-4 text-primary" />
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -774,35 +807,36 @@ export function ReviewWorkspace() {
                   </div>
                 </div>
               )}
-            </div>
+            </Card>
           </div>
-        )}
+        </TabsContent>
 
         {/* TAB 2: SECTIONS (Lyrics & Structure) */}
-        {activeTab === 'sections' && (
+        <TabsContent value="sections" className="mt-0">
           <div className="max-w-4xl mx-auto space-y-4">
             {/* Header Action: Floating Copy Lyrics */}
             <div className="flex items-center justify-between pb-2 border-b border-border">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Sections & Lyrics Spine
               </h3>
-              <button
+              <Button
                 type="button"
+                variant="secondary"
+                size="xs"
                 onClick={handleCopyLyrics}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-secondary hover:bg-secondary/80 text-foreground border border-border rounded-md text-xs font-semibold transition-colors cursor-pointer select-none"
               >
                 {lyricsCopied ? (
                   <>
-                    <Check className="w-3.5 h-3.5 text-emerald-500" />
+                    <Check data-icon="inline-start" className="text-emerald-500" />
                     <span className="text-emerald-500">Copied!</span>
                   </>
                 ) : (
                   <>
-                    <Copy className="w-3.5 h-3.5" />
+                    <Copy data-icon="inline-start" />
                     <span>Copy Lyrics</span>
                   </>
                 )}
-              </button>
+              </Button>
             </div>
 
             {/* Spine Layout */}
@@ -861,10 +895,10 @@ export function ReviewWorkspace() {
               })}
             </div>
           </div>
-        )}
+        </TabsContent>
 
         {/* TAB 3: SLIDES (16:9 Projection Simulator) */}
-        {activeTab === 'slides' && (
+        <TabsContent value="slides" className="mt-0">
           <div className="space-y-4 max-w-7xl mx-auto">
             <div className="flex items-center justify-between pb-2 border-b border-border">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -914,10 +948,10 @@ export function ReviewWorkspace() {
               })}
             </div>
           </div>
-        )}
+        </TabsContent>
 
         {/* TAB 4: WARNINGS */}
-        {activeTab === 'warnings' && (
+        <TabsContent value="warnings" className="mt-0">
           <div className="max-w-3xl mx-auto space-y-4">
             <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground pb-2 border-b border-border">
               Parse & Export Diagnostics
@@ -957,40 +991,42 @@ export function ReviewWorkspace() {
               </div>
             )}
           </div>
-        )}
+        </TabsContent>
 
         {/* TAB 5: RAW JSON */}
-        {activeTab === 'json' && (
+        <TabsContent value="json" className="mt-0">
           <div className="max-w-5xl mx-auto space-y-3">
             <div className="flex items-center justify-between pb-2 border-b border-border">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Canonical Presentation AST (JSON)
               </h3>
-              <button
+              <Button
                 type="button"
+                variant="secondary"
+                size="xs"
                 onClick={handleCopyJson}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-secondary hover:bg-secondary/80 text-foreground border border-border rounded-md text-xs font-semibold transition-colors cursor-pointer select-none"
               >
                 {jsonCopied ? (
                   <>
-                    <Check className="w-3.5 h-3.5 text-emerald-500" />
+                    <Check data-icon="inline-start" className="text-emerald-500" />
                     <span className="text-emerald-500">Copied!</span>
                   </>
                 ) : (
                   <>
-                    <Copy className="w-3.5 h-3.5" />
+                    <Copy data-icon="inline-start" />
                     <span>Copy JSON</span>
                   </>
                 )}
-              </button>
+              </Button>
             </div>
 
             <div className="bg-[#181D26] text-[#E5E7EB] p-5 rounded-lg overflow-x-auto text-xs font-mono border border-slate-800 shadow-inner">
               <JsonTreeNode value={activeSong} />
             </div>
           </div>
-        )}
+        </TabsContent>
       </div>
+      </Tabs>
     </main>
   );
 }
