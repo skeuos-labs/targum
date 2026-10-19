@@ -1,17 +1,8 @@
-import {
-  FolderOpen,
-  Settings2,
-  CheckCircle2,
-  Layers,
-  FileBox,
-  FolderArchive,
-  ArrowRight,
-} from 'lucide-react';
+import { FolderOpen, Settings2, Layers, FolderArchive } from 'lucide-react';
 import { useSourceStore } from '../state/sourceStore';
 import { useExportStore } from '../state/exportStore';
 import { getPlatformAdapter } from '../platform';
-import type { FormatId, CollisionPolicy } from '@show-converter/engine';
-import { cn } from '../lib/utils';
+import type { CollisionPolicy } from '@show-converter/engine';
 import { Button } from './ui/button';
 import { Checkbox } from './ui/checkbox';
 import { Input } from './ui/input';
@@ -22,20 +13,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from './ui/select';
-
-interface FormatOption {
-  id: FormatId;
-  label: string;
-  ext: string;
-}
-
-const FORMAT_OPTIONS: FormatOption[] = [
-  { id: 'pro', label: 'ProPresenter', ext: '.pro' },
-  { id: 'vpc', label: 'VideoPsalm', ext: '.vpc' },
-  { id: 'freeshow', label: 'FreeShow', ext: '.show' },
-  { id: 'txt', label: 'Plain Text', ext: '.txt' },
-  { id: 'pptx', label: 'PowerPoint', ext: '.pptx' },
-];
+import { FormatOptions } from './export/FormatOptions';
+import { ExportFooter } from './export/ExportFooter';
 
 export function ExportSidebar() {
   const selectedSongs = useSourceStore((s) => s.selectedSongs);
@@ -75,77 +54,38 @@ export function ExportSidebar() {
 
   const showCombineOption =
     selectedCount > 1 &&
-    (targetFormat === 'pptx' ||
-      targetFormat === 'vpc' ||
-      targetFormat === 'freeshow');
-
+    (targetFormat === 'pptx' || targetFormat === 'vpc' || targetFormat === 'freeshow');
   const showLibraryOption = selectedCount > 1 && targetFormat === 'pro';
 
   return (
     <aside className="flex h-full w-80 flex-col border-l border-border bg-card/40 select-none overflow-hidden">
-      {/* Header */}
       <div className="border-b border-border p-3">
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+        <h2 className="flex items-center gap-1.5 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
           <Settings2 className="h-3.5 w-3.5" />
           <span>Export</span>
         </h2>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-3 space-y-5">
-        {/* Target Format Grid */}
-        <div className="space-y-2">
-          <label className="text-xs font-semibold text-foreground">
-            Target Format
-          </label>
-          <div className="grid grid-cols-1 gap-1.5">
-            {FORMAT_OPTIONS.map((f) => {
-              const isSelected = targetFormat === f.id;
+      <div className="flex-1 space-y-5 overflow-y-auto p-3">
+        <FormatOptions value={targetFormat} onChange={setTargetFormat} />
 
-              return (
-                <Button
-                  key={f.id}
-                  type="button"
-                  variant={isSelected ? 'default' : 'outline'}
-                  aria-label={f.label}
-                  onClick={() => setTargetFormat(f.id)}
-                  className="h-auto justify-between rounded-md px-3 py-2 text-xs font-normal"
-                >
-                  <span className="flex items-center gap-2">
-                    <FileBox data-icon="inline-start" className="opacity-80" />
-                    <span>{f.label}</span>
-                  </span>
-                  <span
-                    className={cn(
-                      'font-mono text-[10px] rounded px-1.5 py-0.5',
-                      isSelected
-                        ? 'bg-primary-foreground/20 text-primary-foreground'
-                        : 'bg-muted text-muted-foreground'
-                    )}
-                  >
-                    {f.ext}
-                  </span>
-                </Button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Multi-song Export Options */}
         {(showCombineOption || showLibraryOption) && (
-          <div className="rounded-md border border-border bg-card/60 p-3 space-y-3">
-            <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+          <div className="space-y-3 rounded-md border border-border bg-card/60 p-3">
+            <span className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
               <Layers className="h-3.5 w-3.5 text-primary" />
               <span>Multi-song Options</span>
             </span>
 
-            {/* Combine into single file */}
             {showCombineOption && (
               <div className="flex flex-col gap-2">
-                <label className="flex items-center gap-2 text-xs text-foreground cursor-pointer">
+                <label className="flex cursor-pointer items-center gap-2 text-xs text-foreground">
                   <Checkbox
                     checked={combineMode}
                     onCheckedChange={(checked) =>
-                      setCombineMode(checked === true, checked === true ? combineName : undefined)
+                      setCombineMode(
+                        checked === true,
+                        checked === true ? combineName : undefined
+                      )
                     }
                     aria-label="Combine into single file"
                   />
@@ -162,10 +102,9 @@ export function ExportSidebar() {
               </div>
             )}
 
-            {/* ProPresenter Library Folder */}
             {showLibraryOption && (
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs text-foreground flex items-center gap-1">
+                <label className="flex items-center gap-1 text-xs text-foreground">
                   <FolderArchive className="h-3 w-3 text-muted-foreground" />
                   <span>Library Folder Name (Optional)</span>
                 </label>
@@ -180,7 +119,6 @@ export function ExportSidebar() {
           </div>
         )}
 
-        {/* Collision Policy */}
         <div className="flex flex-col gap-1.5">
           <label
             htmlFor="collision-policy-select"
@@ -209,11 +147,8 @@ export function ExportSidebar() {
           </Select>
         </div>
 
-        {/* Destination Output Folder */}
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-semibold text-foreground">
-            Output Directory
-          </label>
+          <span className="text-xs font-semibold text-foreground">Output Directory</span>
           <div className="flex gap-1.5">
             <Input
               placeholder="/path/to/output"
@@ -233,30 +168,17 @@ export function ExportSidebar() {
             </Button>
           </div>
           {!outputDirectory.trim() && (
-            <p className="text-[11px] text-muted-foreground">
-              Select destination folder
-            </p>
+            <p className="text-[11px] text-muted-foreground">Select destination folder</p>
           )}
         </div>
       </div>
 
-      {/* Export Action Footer */}
-      <div className="border-t border-border p-3 bg-card/80">
-        <Button
-          type="button"
-          disabled={selectedCount === 0 || isExporting || !outputDirectory.trim()}
-          onClick={handleExport}
-          className="w-full justify-center py-2.5 text-xs font-semibold"
-        >
-          <CheckCircle2 data-icon="inline-start" />
-          <span>
-            {isExporting
-              ? 'Exporting...'
-              : `Export ${selectedCount} Song${selectedCount === 1 ? '' : 's'}`}
-          </span>
-          <ArrowRight data-icon="inline-end" />
-        </Button>
-      </div>
+      <ExportFooter
+        selectedCount={selectedCount}
+        isExporting={isExporting}
+        canExport={selectedCount > 0 && !isExporting && !!outputDirectory.trim()}
+        onExport={handleExport}
+      />
     </aside>
   );
 }
