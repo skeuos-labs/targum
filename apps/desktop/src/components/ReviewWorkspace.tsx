@@ -6,16 +6,16 @@ import { useDropTarget } from '../lib/useDropTarget';
 import { DropOverlay } from './DropOverlay';
 import { useDndStore } from '../state/dndStore';
 import { formatSourceFormatLabel } from '../lib/formatLabels';
-import { buildSlideToSectionMap } from '../lib/slideText';
+import { useSlideToSectionMap } from '../lib/useSlideToSectionMap';
 import { Tabs, TabsContent } from './ui/tabs';
 import { ReviewHeader } from './review/ReviewHeader';
-import { OverviewTab } from './review/OverviewTab';
-import { SectionsTab } from './review/SectionsTab';
-import { SlidesTab } from './review/SlidesTab';
-import { WarningsTab } from './review/WarningsTab';
-import { JsonTab } from './review/JsonTab';
+import {
+  DEFAULT_REVIEW_TAB,
+  REVIEW_TABS,
+  type ReviewTab,
+} from './review/tabsRegistry';
 
-export type ReviewTab = 'overview' | 'sections' | 'slides' | 'warnings' | 'json';
+export type { ReviewTab };
 
 export function ReviewWorkspace() {
   const sources = useSourceStore((s) => s.sources);
@@ -23,7 +23,7 @@ export function ReviewWorkspace() {
   const selectedSongId = useSourceStore((s) => s.selectedSongId);
   const addFiles = useSourceStore((s) => s.addFiles);
   const isDraggingOver = useDndStore((s) => s.dragging && s.target === 'center');
-  const [activeTab, setActiveTab] = useState<ReviewTab>('overview');
+  const [activeTab, setActiveTab] = useState<ReviewTab>(DEFAULT_REVIEW_TAB);
 
   const adapterRef = useRef(getPlatformAdapter());
   const { ref: dropRef } = useDropTarget({
@@ -41,10 +41,7 @@ export function ReviewWorkspace() {
     currentSource?.library.presentations.find((p) => p.id === selectedSongId) ??
     currentSource?.library.presentations[0];
 
-  const slideToSection = useMemo(
-    () => (activeSong ? buildSlideToSectionMap(activeSong) : new Map()),
-    [activeSong]
-  );
+  const slideToSection = useSlideToSectionMap(activeSong);
   const warnings = useMemo(() => {
     if (!currentSource || !activeSong) return [];
     return [...(currentSource.warnings ?? []), ...(activeSong.warnings ?? [])];
@@ -114,21 +111,11 @@ export function ReviewWorkspace() {
         />
 
         <div className="min-h-0 flex-1 overflow-y-auto p-6 select-text">
-          <TabsContent value="overview" className="mt-0">
-            <OverviewTab {...tabProps} />
-          </TabsContent>
-          <TabsContent value="sections" className="mt-0">
-            <SectionsTab {...tabProps} />
-          </TabsContent>
-          <TabsContent value="slides" className="mt-0">
-            <SlidesTab {...tabProps} />
-          </TabsContent>
-          <TabsContent value="warnings" className="mt-0">
-            <WarningsTab warnings={warnings} />
-          </TabsContent>
-          <TabsContent value="json" className="mt-0">
-            <JsonTab song={activeSong} />
-          </TabsContent>
+          {REVIEW_TABS.map(({ id, Component }) => (
+            <TabsContent key={id} value={id} className="mt-0">
+              <Component {...tabProps} />
+            </TabsContent>
+          ))}
         </div>
       </Tabs>
     </main>

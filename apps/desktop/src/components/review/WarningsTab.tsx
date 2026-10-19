@@ -1,6 +1,7 @@
 import { AlertTriangle, Check } from 'lucide-react';
+import type { ReviewTabProps } from './types';
 
-export function WarningsTab({ warnings }: { warnings: { code: string; severity: string; message: string }[] }) {
+export function WarningsTab({ warnings }: ReviewTabProps) {
   return (
     <div className="mx-auto max-w-3xl space-y-4">
       <h3 className="border-b border-border pb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">

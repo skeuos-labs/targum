@@ -2,15 +2,7 @@ import { AlertTriangle, FileText } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { TabsList, TabsTrigger } from '../ui/tabs';
-import type { ReviewTab } from '../ReviewWorkspace';
-
-const TAB_DEFS: { id: ReviewTab; label: string }[] = [
-  { id: 'overview', label: 'Overview' },
-  { id: 'sections', label: 'Sections' },
-  { id: 'slides', label: 'Slides' },
-  { id: 'warnings', label: 'Warnings' },
-  { id: 'json', label: 'Raw JSON' },
-];
+import { REVIEW_TABS, reviewTabBadge, type ReviewTabBadgeCtx } from './tabsRegistry';
 
 export function ReviewHeader({
   format,
@@ -27,6 +19,8 @@ export function ReviewHeader({
   warningCount: number;
   onShowWarnings: () => void;
 }) {
+  const badgeCtx: ReviewTabBadgeCtx = { warningCount };
+
   return (
     <header className="shrink-0 border-b border-border bg-card px-6 pt-4 pb-0">
       <div className="flex items-center justify-between gap-4">
@@ -78,20 +72,23 @@ export function ReviewHeader({
         variant="line"
         className="h-auto w-full justify-start gap-6 rounded-none border-t border-border/60 bg-transparent p-0 pt-2"
       >
-        {TAB_DEFS.map((tab) => (
-          <TabsTrigger
-            key={tab.id}
-            value={tab.id}
-            className="border-b-2 border-transparent pb-2.5 text-xs font-semibold uppercase tracking-wider data-active:border-primary data-active:text-primary"
-          >
-            <span>{tab.label}</span>
-            {tab.id === 'warnings' && warningCount > 0 && (
-              <span className="rounded-full border border-amber-500/30 bg-amber-500/20 px-1.5 py-0.2 text-[10px] font-bold tabular-nums text-amber-600 dark:text-amber-400">
-                {warningCount}
-              </span>
-            )}
-          </TabsTrigger>
-        ))}
+        {REVIEW_TABS.map((tab) => {
+          const badgeCount = reviewTabBadge(tab, badgeCtx);
+          return (
+            <TabsTrigger
+              key={tab.id}
+              value={tab.id}
+              className="border-b-2 border-transparent pb-2.5 text-xs font-semibold uppercase tracking-wider data-active:border-primary data-active:text-primary"
+            >
+              <span>{tab.label}</span>
+              {!!badgeCount && badgeCount > 0 && (
+                <span className="rounded-full border border-amber-500/30 bg-amber-500/20 px-1.5 py-0.2 text-[10px] font-bold tabular-nums text-amber-600 dark:text-amber-400">
+                  {badgeCount}
+                </span>
+              )}
+            </TabsTrigger>
+          );
+        })}
       </TabsList>
     </header>
   );

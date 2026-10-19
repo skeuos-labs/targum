@@ -4,7 +4,7 @@ import { Button } from '../ui/button';
 import { JsonTreeNode } from '../JsonTreeNode';
 import type { ReviewTabProps } from './types';
 
-export function JsonTab({ song }: Pick<ReviewTabProps, 'song'>) {
+export function JsonTab({ song }: ReviewTabProps) {
   const [copied, flashCopied] = useFlash();
 
   const handleCopyJson = async () => {
