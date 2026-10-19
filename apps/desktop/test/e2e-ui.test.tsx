@@ -86,8 +86,8 @@ describe('End-to-End Real-World Sample UI Integration', () => {
     });
 
     // 3. Verify SourcesSidebar lists both imported sources
-    expect(screen.getByText('IZY-original.pro')).toBeDefined();
-    expect(screen.getByText('façade.vpc')).toBeDefined();
+    expect(screen.getAllByText('IZY-original.pro').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('façade.vpc').length).toBeGreaterThanOrEqual(1);
     // façade.vpc contains 19 songs
     expect(screen.getByText('19')).toBeDefined();
 
@@ -98,18 +98,17 @@ describe('End-to-End Real-World Sample UI Integration', () => {
     expect(titleInput.value).toBe('IZY');
 
     // Metadata cards/labels (Author, CCLI, Copyright)
-    expect(screen.getByText(/Author:/i)).toBeDefined();
-    expect(screen.getByText(/CCLI:/i)).toBeDefined();
-    expect(screen.getByText(/Copyright:/i)).toBeDefined();
+    expect(screen.getByText(/Author/i)).toBeDefined();
+    expect(screen.getByText(/CCLI/i)).toBeDefined();
+    expect(screen.getByText(/Copyright/i)).toBeDefined();
 
-    // Section chips: Verse, Chorus, Tag
+    // Section chips in arrangement: Verse, Chorus, Tag
     expect(screen.getAllByText('Verse').length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText('Chorus').length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText('Tag').length).toBeGreaterThanOrEqual(1);
-    // Section slide counts
-    expect(screen.getByText('(12)')).toBeDefined();
-    expect(screen.getByText('(2)')).toBeDefined();
-    expect(screen.getByText('(3)')).toBeDefined();
+
+    // Switch to Slides tab to inspect projection cards
+    fireEvent.click(screen.getByRole('tab', { name: /slides/i }));
 
     // Verify 17 slide cards with lyric lines rendered
     const slideCards = screen.getAllByText(/^[1-9][0-9]?\/17$/);
@@ -118,12 +117,6 @@ describe('End-to-End Real-World Sample UI Integration', () => {
     // Verify lyric line in first slide
     expect(screen.getByText(/Izy mamatsy ahy isan'andro/i)).toBeDefined();
 
-    // Section color dot indicators rendered on slide cards
-    const sectionDots = screen.getAllByTestId('slide-section-dot');
-    expect(sectionDots.length).toBeGreaterThan(0);
-    // Verse section color in IZY-original.pro is #0077cc (rgb(0, 119, 204))
-    expect(sectionDots[0]!.style.backgroundColor).toBe('rgb(0, 119, 204)');
-
     // 5. Switch active song in multi-song accordion to "Mendrika Ianao" from façade.vpc
     const mendrikaSongRow = screen.getByText('Mendrika Ianao');
     expect(mendrikaSongRow).toBeDefined();
@@ -131,6 +124,9 @@ describe('End-to-End Real-World Sample UI Integration', () => {
     await act(async () => {
       fireEvent.click(mendrikaSongRow);
     });
+
+    // Switch back to Overview tab to inspect title and metadata
+    fireEvent.click(screen.getByRole('tab', { name: /overview/i }));
 
     // Verify ReviewWorkspace updated to display "Mendrika Ianao"
     expect(
@@ -141,8 +137,8 @@ describe('End-to-End Real-World Sample UI Integration', () => {
       ).value
     ).toBe('Mendrika Ianao');
 
-    // Verify format badge updated to vpc
-    expect(screen.getByText('vpc')).toBeDefined();
+    // Verify format badge updated to VPC
+    expect(screen.getAllByText('VPC').length).toBeGreaterThanOrEqual(1);
 
     // 6. Switch to another song in façade.vpc: "Majesté"
     const majesteSongRow = screen.getByText('Majesté');

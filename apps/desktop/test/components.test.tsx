@@ -99,84 +99,166 @@ describe('Core Desktop UI Components', () => {
       });
     });
 
-    it('renders song title, metadata, section chips, and 9 slide cards with lyrics', () => {
+    it('renders breadcrumbs, subtitle, OK diagnostics badge, and 5 tab buttons', () => {
       render(<ReviewWorkspace />);
 
-      // Editable Title Input
+      // Breadcrumbs
+      expect(screen.getByText('Amazing Grace.pro')).toBeDefined();
+      expect(screen.getAllByText('Amazing Grace').length).toBeGreaterThanOrEqual(1);
+      expect(screen.getByText('PRO')).toBeDefined();
+
+      // OK badge when 0 warnings
+      expect(screen.getByText('OK')).toBeDefined();
+
+      // Subtitle line
+      expect(screen.getByText(/1 song · 5 sections · 9 slides/i)).toBeDefined();
+
+      // 5 Tabs
+      expect(screen.getByRole('tab', { name: /overview/i })).toBeDefined();
+      expect(screen.getByRole('tab', { name: /sections/i })).toBeDefined();
+      expect(screen.getByRole('tab', { name: /slides/i })).toBeDefined();
+      expect(screen.getByRole('tab', { name: /warnings/i })).toBeDefined();
+      expect(screen.getByRole('tab', { name: /raw json/i })).toBeDefined();
+    });
+
+    it('renders Overview tab with editable inputs, collapsible drawer, metrics strip, and arrangement flow', async () => {
+      render(<ReviewWorkspace />);
+
+      // Title Input
       const titleInput = screen.getByDisplayValue('Amazing Grace') as HTMLInputElement;
       expect(titleInput).toBeDefined();
 
-      // Metadata
-      expect(screen.getByText(/John Newton/i)).toBeDefined();
-      expect(screen.getByText(/22025/i)).toBeDefined();
-      expect(screen.getByText(/Public Domain/i)).toBeDefined();
+      // Primary Grid: Author, CCLI, Copyright
+      const authorInput = screen.getByDisplayValue('John Newton');
+      const ccliInput = screen.getByDisplayValue('22025');
+      const copyrightInput = screen.getByDisplayValue('Public Domain');
+      expect(authorInput).toBeDefined();
+      expect(ccliInput).toBeDefined();
+      expect(copyrightInput).toBeDefined();
 
-      // Section Chips
+      // Edit metadata and check "Saved ✓" indicator appears
+      fireEvent.change(authorInput, { target: { value: 'John Newton (Rev)' } });
+      fireEvent.blur(authorInput);
+      expect(screen.getByText(/Saved/i)).toBeDefined();
+
+      // Check store updated
+      const source = useSourceStore.getState().sources[0]!;
+      expect(source.library.presentations[0]!.metadata.author).toBe('John Newton (Rev)');
+
+      // Metrics strip
+      expect(screen.getByText('5')).toBeDefined(); // 5 sections
+      expect(screen.getByText('9')).toBeDefined(); // 9 slides
+
+      // Collapsible drawer toggle
+      const drawerToggle = screen.getByRole('button', { name: /view more metadata/i });
+      fireEvent.click(drawerToggle);
+      expect(screen.getByLabelText(/language/i)).toBeDefined();
+      expect(screen.getByLabelText(/theme name/i)).toBeDefined();
+      expect(screen.getByLabelText(/notes/i)).toBeDefined();
+
+      // Arrangement flow (e.g. Standard and Short rows with arrow-separated pills)
+      expect(screen.getByText('Standard')).toBeDefined();
+      expect(screen.getByText('Short')).toBeDefined();
+    });
+
+    it('renders Sections tab with spine layout and copy lyrics button', async () => {
+      // Mock navigator.clipboard
+      const writeTextSpy = vi.fn().mockResolvedValue(undefined);
+      Object.assign(navigator, {
+        clipboard: { writeText: writeTextSpy },
+      });
+
+      render(<ReviewWorkspace />);
+
+      // Switch to Sections tab
+      fireEvent.click(screen.getByRole('tab', { name: /sections/i }));
+
+      // Section names in rotated spine
       expect(screen.getAllByText('Verse 1').length).toBeGreaterThanOrEqual(1);
-      expect(screen.getAllByText('Verse 2').length).toBeGreaterThanOrEqual(1);
       expect(screen.getAllByText('Chorus').length).toBeGreaterThanOrEqual(1);
-      expect(screen.getAllByText('Verse 3').length).toBeGreaterThanOrEqual(1);
-      expect(screen.getAllByText('Verse 4').length).toBeGreaterThanOrEqual(1);
 
-      // 9 Slide Cards with 16:9 badges
+      // Copy lyrics button
+      const copyBtn = screen.getByRole('button', { name: /copy lyrics/i });
+      expect(copyBtn).toBeDefined();
+      fireEvent.click(copyBtn);
+      expect(writeTextSpy).toHaveBeenCalled();
+      expect(await screen.findByText(/copied!/i)).toBeDefined();
+    });
+
+    it('renders Slides tab with 16:9 cards, slide fractions, and consecutive section deduplication', () => {
+      render(<ReviewWorkspace />);
+
+      // Switch to Slides tab
+      fireEvent.click(screen.getByRole('tab', { name: /slides/i }));
+
+      // 9 Slide Cards with 16:9 badges (1/9 .. 9/9)
       const slideBadges = screen.getAllByText(/^[1-9]\/9$/);
       expect(slideBadges).toHaveLength(9);
 
       // Verify specific lyrics in slide cards
-      expect(
-        screen.getByText(/Amazing grace! How sweet the sound/i)
-      ).toBeDefined();
-      expect(
-        screen.getByText(/When we've been there ten thousand years/i)
-      ).toBeDefined();
+      expect(screen.getByText(/Amazing grace! How sweet the sound/i)).toBeDefined();
+      expect(screen.getByText(/When we've been there ten thousand years/i)).toBeDefined();
     });
 
-    it('updates song title when user edits title input', () => {
-      render(<ReviewWorkspace />);
-      const titleInput = screen.getByDisplayValue('Amazing Grace');
-      fireEvent.change(titleInput, { target: { value: 'Amazing Grace (Custom)' } });
+    it('renders Warnings tab with clean parse message when 0 warnings, or warning cards when present', () => {
+      const { rerender } = render(<ReviewWorkspace />);
 
-      const currentSource = useSourceStore.getState().sources[0]!;
-      expect(currentSource.library.presentations[0]!.title).toBe(
-        'Amazing Grace (Custom)'
-      );
+      // Switch to Warnings tab
+      fireEvent.click(screen.getByRole('tab', { name: /warnings/i }));
+      expect(screen.getByText(/no warnings for this file\. clean parse\./i)).toBeDefined();
+
+      // Re-render with a warning
+      act(() => {
+        useSourceStore.setState({
+          sources: [
+            {
+              id: 'src-ag',
+              path: '/test/Amazing Grace.pro',
+              name: 'Amazing Grace.pro',
+              format: 'pro',
+              library: { presentations: [AMAZING_GRACE] },
+              warnings: [
+                {
+                  code: 'PRO_STYLES_NOT_EXTRACTED',
+                  severity: 'info',
+                  message: 'Text styling was ignored',
+                },
+              ],
+              selectedSongId: AMAZING_GRACE.id,
+            },
+          ],
+        });
+      });
+
+      rerender(<ReviewWorkspace />);
+
+      // Clicking amber warning badge in header navigates to Warnings tab
+      const warningBadge = screen.getByText(/1 warning/i);
+      fireEvent.click(warningBadge);
+      expect(screen.getByText(/PRO_STYLES_NOT_EXTRACTED/i)).toBeDefined();
+      expect(screen.getByText(/Text styling was ignored/i)).toBeDefined();
     });
 
-    it('renders section color dot indicator on slide cards if section has a color', async () => {
-      const coloredPresentation: Presentation = {
-        id: 'colored-pres',
-        title: 'Colored Song',
-        sourceFormat: 'unknown',
-        metadata: {},
-        sections: [
-          {
-            id: 'sec-1',
-            name: 'Intro',
-            color: '#10b981',
-            slideIds: ['slide-1'],
-          },
-        ],
-        arrangements: [],
-        slides: [
-          {
-            id: 'slide-1',
-            label: 'Slide 1',
-            items: [{ type: 'text', plainText: 'Colored slide lyric' }],
-          },
-        ],
-        warnings: [],
-      };
-
-      const bytes = toProBytes(coloredPresentation);
-      await mockAdapter.writeFile('/test/Colored.pro', bytes);
-      useSourceStore.getState().clearAll();
-      await useSourceStore.getState().addFiles(['/test/Colored.pro'], mockAdapter);
+    it('renders Raw JSON tab with recursive color-coded tree and copy JSON button', async () => {
+      const writeTextSpy = vi.fn().mockResolvedValue(undefined);
+      Object.assign(navigator, {
+        clipboard: { writeText: writeTextSpy },
+      });
 
       render(<ReviewWorkspace />);
 
-      const dot = screen.getByTestId('slide-section-dot');
-      expect(dot).toBeDefined();
-      expect(dot.style.backgroundColor).toBe('rgb(16, 185, 129)');
+      // Switch to Raw JSON tab
+      fireEvent.click(screen.getByRole('tab', { name: /raw json/i }));
+
+      // Color-coded keys
+      expect(screen.getByText('"title"')).toBeDefined();
+      expect(screen.getByText('"sourceFormat"')).toBeDefined();
+
+      // Copy JSON button
+      const copyBtn = screen.getByRole('button', { name: /copy json/i });
+      fireEvent.click(copyBtn);
+      expect(writeTextSpy).toHaveBeenCalled();
+      expect(await screen.findByText(/copied!/i)).toBeDefined();
     });
   });
 

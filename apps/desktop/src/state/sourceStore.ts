@@ -5,6 +5,7 @@ import {
   FORMAT_REGISTRY,
   type FormatId,
   type Library,
+  type Metadata,
   type Warning,
 } from '@show-converter/engine';
 import { getPlatformAdapter, type PlatformAdapter } from '../platform';
@@ -31,6 +32,7 @@ export interface SourceStoreState {
   toggleSongSelection(sourceId: string, songId: string): void;
   selectAllSongs(selected: boolean): void;
   updateSongTitle(sourceId: string, songId: string, newTitle: string): void;
+  updateSongMetadata(sourceId: string, songId: string, patch: Partial<Metadata>): void;
   clearAll(): void;
 }
 
@@ -225,6 +227,40 @@ export const useSourceStore = create<SourceStoreState>((set, get) => ({
       const updatedPresentations = source.library.presentations.map((pres) => {
         if (pres.id === songId) {
           return { ...pres, title: newTitle };
+        }
+        return pres;
+      });
+      return {
+        ...source,
+        library: {
+          ...source.library,
+          presentations: updatedPresentations,
+        },
+      };
+    });
+
+    set({ sources: updatedSources });
+  },
+
+  updateSongMetadata: (
+    sourceId: string,
+    songId: string,
+    patch: Partial<Metadata>
+  ): void => {
+    const { sources } = get();
+    const updatedSources = sources.map((source) => {
+      if (source.id !== sourceId) {
+        return source;
+      }
+      const updatedPresentations = source.library.presentations.map((pres) => {
+        if (pres.id === songId) {
+          return {
+            ...pres,
+            metadata: {
+              ...pres.metadata,
+              ...patch,
+            },
+          };
         }
         return pres;
       });

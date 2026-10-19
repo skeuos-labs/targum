@@ -200,6 +200,30 @@ describe('Zustand UI State Stores', () => {
       expect(updated.library.presentations[0]!.title).toBe('Renamed Grace');
     });
 
+    it('updates song metadata in-memory', async () => {
+      await useSourceStore.getState().addFiles(['/data/Amazing Grace.pro'], mockAdapter);
+      const source = useSourceStore.getState().sources[0]!;
+      const songId = source.library.presentations[0]!.id;
+
+      useSourceStore.getState().updateSongMetadata(source.id, songId, {
+        author: 'John Newton (Rev)',
+        ccli: '99999',
+        copyright: 'Public Domain 1779',
+        language: 'en-GB',
+        themeName: 'Worship Classic',
+        notes: 'Updated notes',
+      });
+
+      const updated = useSourceStore.getState().sources[0]!;
+      const meta = updated.library.presentations[0]!.metadata;
+      expect(meta.author).toBe('John Newton (Rev)');
+      expect(meta.ccli).toBe('99999');
+      expect(meta.copyright).toBe('Public Domain 1779');
+      expect(meta.language).toBe('en-GB');
+      expect(meta.themeName).toBe('Worship Classic');
+      expect(meta.notes).toBe('Updated notes');
+    });
+
     it('removes source and clears its selected songs', async () => {
       await useSourceStore.getState().addFiles(['/data/Amazing Grace.pro'], mockAdapter);
       const source = useSourceStore.getState().sources[0]!;
