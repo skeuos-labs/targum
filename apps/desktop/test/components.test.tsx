@@ -1,6 +1,23 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, cleanup, act, waitFor } from '@testing-library/react';
+
+// jsdom lacks PointerEvent; Base UI dispatches it on checkbox/select clicks.
+if (typeof window !== 'undefined' && typeof window.PointerEvent === 'undefined') {
+  class PointerEventPolyfill extends MouseEvent {
+    pointerId: number;
+    pointerType: string;
+    isPrimary: boolean;
+    constructor(type: string, params: PointerEventInit = {}) {
+      super(type, params);
+      this.pointerId = params.pointerId ?? 0;
+      this.pointerType = params.pointerType ?? 'mouse';
+      this.isPrimary = params.isPrimary ?? true;
+    }
+  }
+  (window as unknown as { PointerEvent: typeof PointerEventPolyfill }).PointerEvent =
+    PointerEventPolyfill;
+}
 import {
   AMAZING_GRACE,
   writePro,
@@ -38,6 +55,15 @@ function toProBytes(pres: Presentation): Uint8Array {
     throw res.error;
   }
   return res.bytes;
+}
+
+/** Open a Base UI Select trigger and click the option with the given accessible name. */
+async function selectOption(triggerName: RegExp, optionName: string | RegExp): Promise<void> {
+  const trigger = screen.getByRole('combobox', { name: triggerName });
+  fireEvent.click(trigger);
+  const option = await screen.findByRole('option', { name: optionName });
+  fireEvent.pointerDown(option);
+  fireEvent.click(option);
 }
 
 describe('Core Desktop UI Components', () => {
@@ -299,9 +325,8 @@ describe('Core Desktop UI Components', () => {
       expect(container.querySelector('[data-tauri-drag-region]')).toBeDefined();
       expect(screen.getByText('Show Converter')).toBeDefined();
 
-      // Theme toggle
-      const themeSelect = screen.getByRole('combobox', { name: /theme/i });
-      fireEvent.change(themeSelect, { target: { value: 'dark' } });
+      // Theme toggle (Base UI Select: open + pick option)
+      await selectOption(/theme/i, 'Dark');
       expect(useThemeStore.getState().theme).toBe('dark');
 
       // Window controls
@@ -335,10 +360,11 @@ describe('Core Desktop UI Components', () => {
 
       const songCheckbox = screen.getByRole('checkbox', { name: /select song Amazing Grace/i });
       expect(songCheckbox).toBeDefined();
-      expect((songCheckbox as HTMLInputElement).checked).toBe(true);
+      // Base UI Checkbox: state exposed on the control via aria-checked
+      expect(songCheckbox.getAttribute('aria-checked')).toBe('true');
 
       fireEvent.click(songCheckbox);
-      expect((songCheckbox as HTMLInputElement).checked).toBe(false);
+      expect(songCheckbox.getAttribute('aria-checked')).toBe('false');
 
       const source = useSourceStore.getState().sources[0]!;
       const key = `${source.id}:${source.library.presentations[0]!.id}`;
@@ -402,9 +428,8 @@ describe('Core Desktop UI Components', () => {
       fireEvent.click(vpcBtn);
       expect(useExportStore.getState().targetFormat).toBe('vpc');
 
-      // Collision policy
-      const collisionSelect = screen.getByRole('combobox', { name: /collision policy/i });
-      fireEvent.change(collisionSelect, { target: { value: 'overwrite' } });
+      // Collision policy (Base UI Select)
+      await selectOption(/collision policy/i, 'Overwrite');
       expect(useExportStore.getState().collisionPolicy).toBe('overwrite');
 
       // Export button shows song count

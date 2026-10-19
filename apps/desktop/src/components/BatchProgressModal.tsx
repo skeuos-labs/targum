@@ -7,6 +7,8 @@ import {
 } from 'lucide-react';
 import { useExportStore } from '../state/exportStore';
 import { getPlatformAdapter } from '../platform';
+import { Button } from './ui/button';
+import { Progress } from './ui/progress';
 
 export function BatchProgressModal() {
   const { isExporting, progress, lastSummary, outputDirectory, clearSummary } =
@@ -51,12 +53,7 @@ export function BatchProgressModal() {
             </div>
 
             {/* Progress Bar */}
-            <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-              <div
-                className="h-full bg-primary transition-all duration-200"
-                style={{ width: `${percent}%` }}
-              />
-            </div>
+            <Progress value={percent} aria-label="Export progress" />
 
             {/* Status Message */}
             <p className="text-xs text-muted-foreground truncate">
@@ -84,14 +81,15 @@ export function BatchProgressModal() {
                   </p>
                 </div>
               </div>
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="icon-sm"
                 aria-label="Dismiss"
                 onClick={handleClose}
-                className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
               >
-                <X className="h-4 w-4" />
-              </button>
+                <X />
+              </Button>
             </div>
 
             {/* Stats Breakdown */}
@@ -124,21 +122,18 @@ export function BatchProgressModal() {
 
             {/* Actions */}
             <div className="flex items-center justify-end gap-2 pt-2 border-t border-border">
-              <button
+              <Button
                 type="button"
+                variant="outline"
+                size="xs"
                 onClick={handleOpenFolder}
-                className="flex items-center gap-1.5 rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-foreground hover:bg-accent"
               >
-                <FolderOpen className="h-3.5 w-3.5" />
+                <FolderOpen data-icon="inline-start" />
                 <span>Open Output Folder</span>
-              </button>
-              <button
-                type="button"
-                onClick={handleClose}
-                className="rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90"
-              >
+              </Button>
+              <Button type="button" size="xs" onClick={handleClose}>
                 Close
-              </button>
+              </Button>
             </div>
           </div>
         )}

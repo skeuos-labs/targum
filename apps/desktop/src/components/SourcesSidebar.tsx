@@ -13,6 +13,8 @@ import { getPlatformAdapter } from '../platform';
 import { cn } from '../lib/utils';
 import { useDropTarget } from '../lib/useDropTarget';
 import { DropOverlay } from './DropOverlay';
+import { Button } from './ui/button';
+import { Checkbox } from './ui/checkbox';
 
 export function SourcesSidebar() {
   const {
@@ -98,45 +100,47 @@ export function SourcesSidebar() {
             Sources
           </h2>
           {sources.length > 0 && (
-            <button
-              type="button"
+            <Button
+              variant="ghost"
+              size="xs"
               onClick={clearAll}
-              className="text-[11px] text-muted-foreground hover:text-destructive"
+              className="h-auto p-0 text-[11px] text-muted-foreground hover:text-destructive"
             >
               Clear All
-            </button>
+            </Button>
           )}
         </div>
 
         {/* Action Buttons */}
         <div className="grid grid-cols-2 gap-2">
-          <button
-            type="button"
+          <Button
+            variant="outline"
+            size="xs"
             onClick={handleAddFiles}
-            className="flex items-center justify-center gap-1.5 rounded border border-border bg-background px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-accent"
+            className="justify-center"
           >
-            <FilePlus className="h-3.5 w-3.5" />
+            <FilePlus data-icon="inline-start" />
             <span>Add Files</span>
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
+            variant="outline"
+            size="xs"
             onClick={handleAddFolder}
-            className="flex items-center justify-center gap-1.5 rounded border border-border bg-background px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-accent"
+            className="justify-center"
           >
-            <FolderPlus className="h-3.5 w-3.5" />
+            <FolderPlus data-icon="inline-start" />
             <span>Add Folder</span>
-          </button>
+          </Button>
         </div>
 
         {/* Select All Checkbox */}
         {allSongKeys.length > 0 && (
           <div className="flex items-center justify-between pt-1">
             <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={isAllSelected}
-                onChange={(e) => selectAllSongs(e.target.checked)}
-                className="h-3.5 w-3.5 rounded border-border text-primary focus:ring-ring"
+                onCheckedChange={(checked) => selectAllSongs(checked === true)}
+                aria-label="Select all songs"
               />
               <span>Select All ({selectedSongs.size}/{allSongKeys.length})</span>
             </label>
@@ -220,15 +224,13 @@ export function SourcesSidebar() {
                           )}
                           onClick={() => selectSong(source.id, song.id)}
                         >
-                          <input
-                            type="checkbox"
+                          <Checkbox
                             aria-label={`Select song ${song.title}`}
                             checked={isChecked}
-                            onChange={(e) => {
-                              e.stopPropagation();
+                            onCheckedChange={() => {
                               toggleSongSelection(source.id, song.id);
                             }}
-                            className="h-3.5 w-3.5 rounded border-border text-primary focus:ring-ring"
+                            onClick={(e) => e.stopPropagation()}
                           />
                           <Music className="h-3 w-3 text-muted-foreground shrink-0" />
                           <span className="flex-1 truncate text-foreground">

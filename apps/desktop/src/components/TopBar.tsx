@@ -1,6 +1,20 @@
 import { Minus, Square, X, Sun, Moon, Laptop } from 'lucide-react';
 import { useThemeStore, type Theme } from '../state/themeStore';
 import { getPlatformAdapter } from '../platform';
+import { Button } from './ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from './ui/select';
+
+const THEME_OPTIONS: { value: Theme; label: string }[] = [
+  { value: 'light', label: 'Light' },
+  { value: 'dark', label: 'Dark' },
+  { value: 'system', label: 'System' },
+];
 
 export function TopBar() {
   const { theme, setTheme } = useThemeStore();
@@ -24,7 +38,7 @@ export function TopBar() {
       data-tauri-drag-region
     >
       {/* Brand & Version */}
-      <div className="flex items-center space-x-2" data-tauri-drag-region>
+      <div className="flex items-center gap-2" data-tauri-drag-region>
         <span className="font-bold tracking-tight text-foreground">
           Show Converter
         </span>
@@ -34,54 +48,64 @@ export function TopBar() {
       </div>
 
       {/* Right Controls: Theme Selector + Window Controls */}
-      <div className="flex items-center space-x-3">
+      <div className="flex items-center gap-3">
         {/* Theme Dropdown */}
-        <div className="flex items-center space-x-1.5 text-muted-foreground">
+        <div className="flex items-center gap-1.5 text-muted-foreground">
           {theme === 'dark' ? (
-            <Moon className="h-3.5 w-3.5" />
+            <Moon data-icon="inline-start" />
           ) : theme === 'light' ? (
-            <Sun className="h-3.5 w-3.5" />
+            <Sun data-icon="inline-start" />
           ) : (
-            <Laptop className="h-3.5 w-3.5" />
+            <Laptop data-icon="inline-start" />
           )}
-          <select
-            aria-label="Theme"
-            value={theme}
-            onChange={(e) => setTheme(e.target.value as Theme)}
-            className="rounded border border-border bg-background px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-          >
-            <option value="light">Light</option>
-            <option value="dark">Dark</option>
-            <option value="system">System</option>
-          </select>
+          <Select value={theme} onValueChange={(value) => setTheme(value as Theme)}>
+            <SelectTrigger
+              aria-label="Theme"
+              size="sm"
+              className="h-7 w-auto gap-1 rounded border-border bg-background px-2 text-xs"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {THEME_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Window Controls */}
-        <div className="flex items-center space-x-1">
-          <button
+        <div className="flex items-center gap-1">
+          <Button
             type="button"
+            variant="ghost"
+            size="icon-xs"
             aria-label="Minimize"
             onClick={handleMinimize}
-            className="flex h-7 w-7 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground"
           >
-            <Minus className="h-3.5 w-3.5" />
-          </button>
-          <button
+            <Minus />
+          </Button>
+          <Button
             type="button"
+            variant="ghost"
+            size="icon-xs"
             aria-label="Maximize"
             onClick={handleToggleMaximize}
-            className="flex h-7 w-7 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground"
           >
-            <Square className="h-3 w-3" />
-          </button>
-          <button
+            <Square />
+          </Button>
+          <Button
             type="button"
+            variant="ghost"
+            size="icon-xs"
             aria-label="Close"
             onClick={handleClose}
-            className="flex h-7 w-7 items-center justify-center rounded text-muted-foreground hover:bg-destructive hover:text-destructive-foreground"
+            className="hover:bg-destructive hover:text-destructive-foreground"
           >
-            <X className="h-3.5 w-3.5" />
-          </button>
+            <X />
+          </Button>
         </div>
       </div>
     </header>

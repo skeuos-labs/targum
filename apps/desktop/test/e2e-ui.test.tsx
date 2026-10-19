@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, screen, fireEvent, cleanup, act } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup, act, waitFor } from '@testing-library/react';
 import fs from 'node:fs';
 import path from 'node:path';
 import { MockPlatformAdapter, setPlatformAdapter } from '../src/platform';
@@ -8,6 +8,16 @@ import { useThemeStore } from '../src/state/themeStore';
 import { useSourceStore } from '../src/state/sourceStore';
 import { useExportStore } from '../src/state/exportStore';
 import App from '../src/App';
+
+// jsdom lacks PointerEvent; Base UI dispatches it on select item clicks.
+if (typeof window !== 'undefined' && typeof window.PointerEvent === 'undefined') {
+  class PointerEventPolyfill extends MouseEvent {
+    constructor(type: string, params: PointerEventInit = {}) {
+      super(type, params);
+    }
+  }
+  (window as unknown as { PointerEvent: unknown }).PointerEvent = PointerEventPolyfill;
+}
 
 if (typeof Blob !== 'undefined' && !Blob.prototype.arrayBuffer) {
   Blob.prototype.arrayBuffer = async function (this: Blob): Promise<ArrayBuffer> {
@@ -167,12 +177,17 @@ describe('End-to-End Real-World Sample UI Integration', () => {
     fireEvent.change(outDirInput, { target: { value: '/output/real-export' } });
     expect(useExportStore.getState().outputDirectory).toBe('/output/real-export');
 
-    // Collision policy: Overwrite
-    const collisionSelect = screen.getByRole('combobox', {
+    // Collision policy: Overwrite (Base UI Select)
+    const collisionTrigger = screen.getByRole('combobox', {
       name: /collision policy/i,
     });
-    fireEvent.change(collisionSelect, { target: { value: 'overwrite' } });
-    expect(useExportStore.getState().collisionPolicy).toBe('overwrite');
+    fireEvent.click(collisionTrigger);
+    const overwriteOption = await screen.findByRole('option', { name: /overwrite/i });
+    fireEvent.pointerDown(overwriteOption);
+    fireEvent.click(overwriteOption);
+    await waitFor(() => {
+      expect(useExportStore.getState().collisionPolicy).toBe('overwrite');
+    });
 
     // Total songs selected: 1 from IZY + 19 from façade.vpc = 20 songs
     const exportBtn = screen.getByRole('button', {

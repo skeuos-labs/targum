@@ -12,6 +12,16 @@ import { useExportStore } from '../state/exportStore';
 import { getPlatformAdapter } from '../platform';
 import type { FormatId, CollisionPolicy } from '@show-converter/engine';
 import { cn } from '../lib/utils';
+import { Button } from './ui/button';
+import { Checkbox } from './ui/checkbox';
+import { Input } from './ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from './ui/select';
 
 interface FormatOption {
   id: FormatId;
@@ -92,22 +102,18 @@ export function ExportSidebar() {
               const isSelected = targetFormat === f.id;
 
               return (
-                <button
+                <Button
                   key={f.id}
                   type="button"
+                  variant={isSelected ? 'default' : 'outline'}
                   aria-label={f.label}
                   onClick={() => setTargetFormat(f.id)}
-                  className={cn(
-                    'flex items-center justify-between rounded-md border px-3 py-2 text-xs transition-colors',
-                    isSelected
-                      ? 'border-primary bg-primary text-primary-foreground font-semibold shadow-xs'
-                      : 'border-border bg-card hover:bg-accent text-foreground'
-                  )}
+                  className="h-auto justify-between rounded-md px-3 py-2 text-xs font-normal"
                 >
-                  <div className="flex items-center gap-2">
-                    <FileBox className="h-3.5 w-3.5 opacity-80" />
+                  <span className="flex items-center gap-2">
+                    <FileBox data-icon="inline-start" className="opacity-80" />
                     <span>{f.label}</span>
-                  </div>
+                  </span>
                   <span
                     className={cn(
                       'font-mono text-[10px] rounded px-1.5 py-0.5',
@@ -118,7 +124,7 @@ export function ExportSidebar() {
                   >
                     {f.ext}
                   </span>
-                </button>
+                </Button>
               );
             })}
           </div>
@@ -134,23 +140,23 @@ export function ExportSidebar() {
 
             {/* Combine into single file */}
             {showCombineOption && (
-              <div className="space-y-2">
+              <div className="flex flex-col gap-2">
                 <label className="flex items-center gap-2 text-xs text-foreground cursor-pointer">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={combineMode}
-                    onChange={(e) => setCombineMode(e.target.checked)}
-                    className="h-3.5 w-3.5 rounded border-border text-primary focus:ring-ring"
+                    onCheckedChange={(checked) =>
+                      setCombineMode(checked === true, checked === true ? combineName : undefined)
+                    }
+                    aria-label="Combine into single file"
                   />
                   <span>Combine into single file</span>
                 </label>
                 {combineMode && (
-                  <input
-                    type="text"
+                  <Input
                     placeholder="Combined filename (e.g. WorshipSet)"
                     value={combineName}
                     onChange={(e) => setCombineMode(true, e.target.value)}
-                    className="w-full rounded border border-border bg-background px-2.5 py-1 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                    className="h-7 px-2.5 text-xs"
                   />
                 )}
               </div>
@@ -158,17 +164,16 @@ export function ExportSidebar() {
 
             {/* ProPresenter Library Folder */}
             {showLibraryOption && (
-              <div className="space-y-1.5">
+              <div className="flex flex-col gap-1.5">
                 <label className="text-xs text-foreground flex items-center gap-1">
                   <FolderArchive className="h-3 w-3 text-muted-foreground" />
                   <span>Library Folder Name (Optional)</span>
                 </label>
-                <input
-                  type="text"
+                <Input
                   placeholder="e.g. SundayService"
                   value={libraryName}
                   onChange={(e) => setLibraryName(e.target.value)}
-                  className="w-full rounded border border-border bg-background px-2.5 py-1 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                  className="h-7 px-2.5 text-xs"
                 />
               </div>
             )}
@@ -176,48 +181,56 @@ export function ExportSidebar() {
         )}
 
         {/* Collision Policy */}
-        <div className="space-y-1.5">
+        <div className="flex flex-col gap-1.5">
           <label
             htmlFor="collision-policy-select"
             className="text-xs font-semibold text-foreground"
           >
             Collision Policy
           </label>
-          <select
-            id="collision-policy-select"
-            aria-label="Collision Policy"
+          <Select
             value={collisionPolicy}
-            onChange={(e) => setCollisionPolicy(e.target.value as CollisionPolicy)}
-            className="w-full rounded border border-border bg-background px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+            onValueChange={(value) => setCollisionPolicy(value as CollisionPolicy)}
           >
-            <option value="rename">Auto-rename</option>
-            <option value="skip">Skip existing</option>
-            <option value="overwrite">Overwrite</option>
-            <option value="error">Error</option>
-          </select>
+            <SelectTrigger
+              id="collision-policy-select"
+              aria-label="Collision Policy"
+              size="sm"
+              className="w-full"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="rename">Auto-rename</SelectItem>
+              <SelectItem value="skip">Skip existing</SelectItem>
+              <SelectItem value="overwrite">Overwrite</SelectItem>
+              <SelectItem value="error">Error</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Destination Output Folder */}
-        <div className="space-y-1.5">
+        <div className="flex flex-col gap-1.5">
           <label className="text-xs font-semibold text-foreground">
             Output Directory
           </label>
           <div className="flex gap-1.5">
-            <input
-              type="text"
+            <Input
               placeholder="/path/to/output"
               value={outputDirectory}
               onChange={(e) => setOutputDirectory(e.target.value)}
-              className="flex-1 rounded border border-border bg-background px-2.5 py-1.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring truncate"
+              className="h-7 flex-1 truncate px-2.5 text-xs"
             />
-            <button
+            <Button
               type="button"
+              variant="outline"
+              size="xs"
               onClick={handleBrowseOutput}
-              className="flex items-center gap-1 rounded border border-border bg-background px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-accent shrink-0"
+              className="shrink-0"
             >
-              <FolderOpen className="h-3.5 w-3.5" />
+              <FolderOpen data-icon="inline-start" />
               <span>Browse...</span>
-            </button>
+            </Button>
           </div>
           {!outputDirectory.trim() && (
             <p className="text-[11px] text-muted-foreground">
@@ -229,25 +242,20 @@ export function ExportSidebar() {
 
       {/* Export Action Footer */}
       <div className="border-t border-border p-3 bg-card/80">
-        <button
+        <Button
           type="button"
           disabled={selectedCount === 0 || isExporting || !outputDirectory.trim()}
           onClick={handleExport}
-          className={cn(
-            'flex w-full items-center justify-center gap-2 rounded-md bg-primary py-2.5 text-xs font-semibold text-primary-foreground shadow-sm transition-colors',
-            selectedCount === 0 || isExporting || !outputDirectory.trim()
-              ? 'opacity-50 cursor-not-allowed'
-              : 'hover:bg-primary/90'
-          )}
+          className="w-full justify-center py-2.5 text-xs font-semibold"
         >
-          <CheckCircle2 className="h-4 w-4" />
+          <CheckCircle2 data-icon="inline-start" />
           <span>
             {isExporting
               ? 'Exporting...'
               : `Export ${selectedCount} Song${selectedCount === 1 ? '' : 's'}`}
           </span>
-          <ArrowRight className="h-3.5 w-3.5" />
-        </button>
+          <ArrowRight data-icon="inline-end" />
+        </Button>
       </div>
     </aside>
   );
