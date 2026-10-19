@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, screen, fireEvent, cleanup, act } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup, act, waitFor } from '@testing-library/react';
 import {
   AMAZING_GRACE,
   writePro,
@@ -20,11 +20,14 @@ import App from '../src/App';
 
 if (typeof Blob !== 'undefined' && !Blob.prototype.arrayBuffer) {
   Blob.prototype.arrayBuffer = async function (this: Blob): Promise<ArrayBuffer> {
-    return new Promise((resolve, reject) => {
+    // Prefer synchronous path when possible (jsdom File/Blob)
+    const anyThis = this as unknown as { size?: number };
+    return await new Promise<ArrayBuffer>((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve(reader.result as ArrayBuffer);
-      reader.onerror = () => reject(reader.error);
-      reader.readAsArrayBuffer(this);
+      reader.onerror = () => reject(reader.error ?? new Error('FileReader failed'));
+      reader.readAsArrayBuffer(this as Blob);
+      void anyThis;
     });
   };
 }
@@ -69,6 +72,29 @@ describe('Core Desktop UI Components', () => {
       expect(
         screen.getByText('Drop presentation files to get started')
       ).toBeDefined();
+    });
+
+    it('handles dropping File objects onto empty ReviewWorkspace', async () => {
+      const bytes = toProBytes(AMAZING_GRACE);
+      const droppedFile = new File([bytes as unknown as BlobPart], 'Dropped.pro', { type: 'application/octet-stream' });
+
+      render(<ReviewWorkspace />);
+      const mainEl = screen.getByRole('main');
+
+      // Drag enter -> shows overlay without flicker
+      fireEvent.dragEnter(mainEl, { dataTransfer: { files: [droppedFile] } });
+      expect(screen.getByText('Drop files to import')).toBeDefined();
+
+      // Drop file
+      await act(async () => {
+        fireEvent.drop(mainEl, { dataTransfer: { files: [droppedFile] } });
+      });
+
+      // Assert song loaded in store (File.arrayBuffer / FileReader may be async)
+      await waitFor(() => {
+        expect(useSourceStore.getState().sources).toHaveLength(1);
+      });
+      expect(useSourceStore.getState().sources[0]!.name).toBe('Dropped.pro');
     });
 
     it('renders status bar with zero counts in empty state', () => {
@@ -337,6 +363,27 @@ describe('Core Desktop UI Components', () => {
 
       fireEvent.click(clearBtn);
       expect(useSourceStore.getState().sources).toHaveLength(0);
+    });
+
+    it('handles dropping File objects onto SourcesSidebar', async () => {
+      const bytes = toProBytes(AMAZING_GRACE);
+      const droppedFile = new File([bytes as unknown as BlobPart], 'SideDrop.pro', { type: 'application/octet-stream' });
+
+      const { container } = render(<SourcesSidebar />);
+      const asideEl = container.querySelector('aside')!;
+
+      // Drag enter -> shows overlay without flicker
+      fireEvent.dragEnter(asideEl, { dataTransfer: { files: [droppedFile] } });
+      expect(screen.getByText('Drop files to import')).toBeDefined();
+
+      // Drop file
+      await act(async () => {
+        fireEvent.drop(asideEl, { dataTransfer: { files: [droppedFile] } });
+      });
+
+      await waitFor(() => {
+        expect(useSourceStore.getState().sources.some((s) => s.name === 'SideDrop.pro')).toBe(true);
+      });
     });
   });
 

@@ -1,23 +1,16 @@
-import type { PlatformAdapter, FileFilter } from './adapter';
+import type { PlatformAdapter, FileFilter, NativeDragDropEvent } from './adapter';
 
 function normalizePath(p: string): string {
-  const normalized = p.replace(/\\/g, '/');
-  if (normalized === '/' || normalized === '') {
-    return normalized;
-  }
-  return normalized.replace(/\/+$/, '');
+  return p.replace(/\\/g, '/').replace(/\/+/g, '/').replace(/\/$/, '');
 }
 
 export class MockPlatformAdapter implements PlatformAdapter {
-  files: Map<string, Uint8Array> = new Map();
-  dirs: Set<string> = new Set();
-  mockPickedFiles: string[] | null = null;
-  mockPickedDirectory: string | null = null;
+  files = new Map<string, Uint8Array>();
+  dirs = new Set<string>();
   openedPaths: string[] = [];
 
-  isMinimized = false;
-  isMaximized = false;
-  isClosed = false;
+  mockPickedFiles: string[] | null = null;
+  mockPickedDirectory: string | null = null;
 
   setMockPickedFiles(files: string[] | null): void {
     this.mockPickedFiles = files;
@@ -26,6 +19,12 @@ export class MockPlatformAdapter implements PlatformAdapter {
   setMockPickedDirectory(dir: string | null): void {
     this.mockPickedDirectory = dir;
   }
+
+  isMinimized = false;
+  isMaximized = false;
+  isClosed = false;
+
+  private dragDropListeners = new Set<(event: NativeDragDropEvent) => void>();
 
   async pickFiles(_options?: { filters?: FileFilter[] }): Promise<string[] | null> {
     return this.mockPickedFiles;
@@ -39,33 +38,34 @@ export class MockPlatformAdapter implements PlatformAdapter {
     const norm = normalizePath(path);
     const data = this.files.get(norm);
     if (!data) {
-      throw new Error(`File not found: ${path}`);
+      throw new Error(`File not found in MockPlatformAdapter: ${path}`);
     }
-    return data;
+    return data.slice();
   }
 
   async writeFile(path: string, bytes: Uint8Array): Promise<void> {
     const norm = normalizePath(path);
-    this.files.set(norm, bytes);
+    this.files.set(norm, bytes.slice());
+
+    // Auto-create parent directory in mock store
+    const lastSlash = norm.lastIndexOf('/');
+    if (lastSlash > 0) {
+      this.dirs.add(norm.slice(0, lastSlash));
+    }
   }
 
   async readDir(path: string, options?: { recursive?: boolean }): Promise<string[]> {
     const norm = normalizePath(path);
-    const prefix = norm === '' ? '' : norm === '/' ? '/' : `${norm}/`;
+    const prefix = `${norm}/`;
     const matched: string[] = [];
 
     for (const key of this.files.keys()) {
-      const normKey = normalizePath(key);
-      if (!normKey.startsWith(prefix)) {
-        continue;
-      }
-      if (options?.recursive) {
-        matched.push(key);
-      } else {
-        const sub = normKey.slice(prefix.length);
-        if (!sub.includes('/')) {
-          matched.push(key);
+      if (key.startsWith(prefix)) {
+        const sub = key.slice(prefix.length);
+        if (!options?.recursive && sub.includes('/')) {
+          continue;
         }
+        matched.push(key);
       }
     }
 
@@ -78,14 +78,9 @@ export class MockPlatformAdapter implements PlatformAdapter {
       return true;
     }
 
-    const prefix = norm === '' ? '' : norm === '/' ? '/' : `${norm}/`;
+    const prefix = `${norm}/`;
     for (const key of this.files.keys()) {
-      if (normalizePath(key).startsWith(prefix)) {
-        return true;
-      }
-    }
-    for (const dir of this.dirs) {
-      if (normalizePath(dir).startsWith(prefix)) {
+      if (key.startsWith(prefix)) {
         return true;
       }
     }
@@ -100,6 +95,19 @@ export class MockPlatformAdapter implements PlatformAdapter {
 
   async openPath(path: string): Promise<void> {
     this.openedPaths.push(path);
+  }
+
+  onDragDrop(handler: (event: NativeDragDropEvent) => void): () => void {
+    this.dragDropListeners.add(handler);
+    return () => {
+      this.dragDropListeners.delete(handler);
+    };
+  }
+
+  simulateDragDrop(event: NativeDragDropEvent): void {
+    for (const listener of this.dragDropListeners) {
+      listener(event);
+    }
   }
 
   window = {

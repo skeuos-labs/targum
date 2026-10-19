@@ -13,6 +13,10 @@ import {
 } from 'lucide-react';
 import type { FormatId, Presentation, Slide } from '@show-converter/engine';
 import { useSourceStore } from '../state/sourceStore';
+import { getPlatformAdapter } from '../platform';
+import { useDropTarget } from '../lib/useDropTarget';
+import { DropOverlay } from './DropOverlay';
+import { useDndStore } from '../state/dndStore';
 
 export type ReviewTab = 'overview' | 'sections' | 'slides' | 'warnings' | 'json';
 
@@ -213,9 +217,20 @@ export function ReviewWorkspace() {
   const [isSavedFlash, setIsSavedFlash] = useState(false);
   const [lyricsCopied, setLyricsCopied] = useState(false);
   const [jsonCopied, setJsonCopied] = useState(false);
-  const [isDraggingOver, setIsDraggingOver] = useState(false);
+  const isDraggingOver = useDndStore((s) => s.dragging && s.target === 'center');
 
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const adapterRef = useRef(getPlatformAdapter());
+  const { ref: dropRef } = useDropTarget({
+    id: 'center',
+    onDropFiles: async (files) => {
+      await addFiles(files, adapterRef.current);
+    },
+    onDropPaths: async (paths) => {
+      await addFiles(paths, adapterRef.current);
+    },
+  });
 
   const triggerSavedFlash = () => {
     setIsSavedFlash(true);
@@ -238,49 +253,21 @@ export function ReviewWorkspace() {
     currentSource?.library.presentations.find((p) => p.id === selectedSongId) ??
     currentSource?.library.presentations[0];
 
-  // Drag and Drop handlers for entire workspace
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDraggingOver(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDraggingOver(false);
-  };
-
-  const handleDrop = async (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDraggingOver(false);
-
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      const filePaths: string[] = [];
-      for (let i = 0; i < e.dataTransfer.files.length; i++) {
-        const f = e.dataTransfer.files[i] as File & { path?: string };
-        if (f.path) {
-          filePaths.push(f.path);
-        }
-      }
-      if (filePaths.length > 0) {
-        await addFiles(filePaths);
-      }
-    }
-  };
-
   // Empty State
   if (!currentSource || !activeSong) {
     return (
       <main
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-        className={`flex flex-1 flex-col items-center justify-center p-8 text-center bg-background select-none transition-colors ${
+        ref={dropRef}
+        data-drop-target="center"
+        className={`relative flex flex-1 flex-col items-center justify-center p-8 text-center bg-background select-none transition-colors ${
           isDraggingOver ? 'border-2 border-dashed border-primary bg-primary/5' : ''
         }`}
       >
+        <DropOverlay
+          targetId="center"
+          title="Drop files to import"
+          subtitle="Supports .pro, .pro6, .vpc, .show, .pptx, .txt"
+        />
         <div className="mb-4 rounded-full bg-muted/60 p-4">
           <PresentationIcon className="h-10 w-10 text-muted-foreground opacity-60" />
         </div>
@@ -390,13 +377,18 @@ export function ReviewWorkspace() {
 
   return (
     <main
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
-      className={`flex flex-1 flex-col overflow-hidden bg-background select-none min-w-0 transition-colors ${
+      ref={dropRef}
+      data-drop-target="center"
+      className={`relative flex flex-1 flex-col overflow-hidden bg-background select-none min-w-0 transition-colors ${
         isDraggingOver ? 'ring-2 ring-inset ring-primary bg-primary/5' : ''
       }`}
     >
+      <DropOverlay
+        targetId="center"
+        title="Drop presentation files to import"
+        subtitle="Supports .pro, .pro6, .vpc, .show, .pptx, .txt"
+      />
+
       {/* 2. Header & Tab Navigation Bar */}
       <header className="px-6 pt-4 pb-0 bg-card border-b border-border shrink-0">
         <div className="flex items-center justify-between gap-4">

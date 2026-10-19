@@ -20,12 +20,14 @@ export interface SourceFile {
   selectedSongId?: string;
 }
 
+export type SourceInput = string | File;
+
 export interface SourceStoreState {
   sources: SourceFile[];
   selectedSourceId?: string;
   selectedSongId?: string;
   selectedSongs: Set<string>; // composite "sourceId:songId"
-  addFiles(paths: string[], adapter?: PlatformAdapter): Promise<void>;
+  addFiles(inputs: SourceInput[], adapter?: PlatformAdapter): Promise<void>;
   addDirectory(dirPath: string, recursive?: boolean, adapter?: PlatformAdapter): Promise<void>;
   removeSource(id: string): void;
   selectSong(sourceId: string, songId: string): void;
@@ -49,30 +51,69 @@ function generateId(): string {
   return `src-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
+/** Read a browser File/Blob to bytes. Prefer arrayBuffer; fall back to FileReader (jsdom/older). */
+async function readBrowserFile(file: File): Promise<Uint8Array> {
+  if (typeof file.arrayBuffer === 'function') {
+    return new Uint8Array(await file.arrayBuffer());
+  }
+  return new Promise<Uint8Array>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      resolve(new Uint8Array(reader.result as ArrayBuffer));
+    };
+    reader.onerror = () => {
+      reject(reader.error ?? new Error('Failed to read file'));
+    };
+    reader.readAsArrayBuffer(file);
+  });
+}
+
 export const useSourceStore = create<SourceStoreState>((set, get) => ({
   sources: [],
   selectedSourceId: undefined,
   selectedSongId: undefined,
   selectedSongs: new Set<string>(),
 
-  addFiles: async (paths: string[], adapter?: PlatformAdapter): Promise<void> => {
+  addFiles: async (inputs: SourceInput[], adapter?: PlatformAdapter): Promise<void> => {
     const activeAdapter = adapter ?? getPlatformAdapter();
     const newSources: SourceFile[] = [];
     const newSelectedSongs = new Set<string>(get().selectedSongs);
 
-    for (const filePath of paths) {
+    for (const input of inputs) {
       try {
-        const bytes = await activeAdapter.readFile(filePath);
-        const imported = await importFile(bytes, filePath);
+        let bytes: Uint8Array;
+        let fileName: string;
+        let filePath: string;
+
+        if (typeof input === 'string') {
+          filePath = input;
+          fileName = filePath.split(/[/\\]/).pop() || filePath;
+          bytes = await activeAdapter.readFile(filePath);
+        } else {
+          const file = input;
+          fileName = file.name;
+          filePath = (file as unknown as { path?: string }).path || file.name;
+          bytes = await readBrowserFile(file);
+
+          if (typeof (activeAdapter as unknown as { writeFile?: (p: string, b: Uint8Array) => Promise<void> }).writeFile === 'function') {
+            try {
+              const mockPath = filePath.startsWith('/') ? filePath : '/' + filePath;
+              await activeAdapter.writeFile(mockPath, bytes);
+            } catch {
+              // ignore mock write error
+            }
+          }
+        }
+
+        const imported = await importFile(bytes, fileName);
 
         if (!imported.ok) {
           continue;
         }
 
-        const detected = detectFormat(filePath, bytes);
+        const detected = detectFormat(fileName, bytes);
         const formatId = (detected ?? 'pro') as FormatId;
         const sourceId = generateId();
-        const fileName = filePath.split(/[/\\]/).pop() || filePath;
         const firstSongId = imported.value.presentations[0]?.id;
 
         const sourceFile: SourceFile = {

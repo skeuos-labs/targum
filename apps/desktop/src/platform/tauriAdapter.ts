@@ -8,7 +8,7 @@ import {
 } from '@tauri-apps/plugin-fs';
 import { openPath as tauriOpenPath } from '@tauri-apps/plugin-opener';
 import { getCurrentWindow } from '@tauri-apps/api/window';
-import type { PlatformAdapter, FileFilter } from './adapter';
+import type { PlatformAdapter, FileFilter, NativeDragDropEvent } from './adapter';
 
 export class TauriPlatformAdapter implements PlatformAdapter {
   async pickFiles(options?: { filters?: FileFilter[] }): Promise<string[] | null> {
@@ -80,6 +80,56 @@ export class TauriPlatformAdapter implements PlatformAdapter {
 
   async openPath(path: string): Promise<void> {
     await tauriOpenPath(path);
+  }
+
+  /**
+   * Register native OS drag-drop. Returns a disposer that is safe to call
+   * before the async listen resolves (pending listen is torn down on resolve).
+   */
+  onDragDrop(handler: (event: NativeDragDropEvent) => void): () => void {
+    let disposed = false;
+    let unlisten: (() => void) | undefined;
+
+    void getCurrentWindow()
+      .onDragDropEvent((e) => {
+        if (disposed) return;
+        if (e.payload.type === 'enter') {
+          handler({
+            type: 'enter',
+            paths: e.payload.paths,
+            position: { x: e.payload.position.x, y: e.payload.position.y },
+          });
+        } else if (e.payload.type === 'over') {
+          handler({
+            type: 'over',
+            position: { x: e.payload.position.x, y: e.payload.position.y },
+          });
+        } else if (e.payload.type === 'leave') {
+          handler({ type: 'leave' });
+        } else if (e.payload.type === 'drop') {
+          handler({
+            type: 'drop',
+            paths: e.payload.paths,
+            position: { x: e.payload.position.x, y: e.payload.position.y },
+          });
+        }
+      })
+      .then((u) => {
+        if (disposed) {
+          u();
+        } else {
+          unlisten = u;
+        }
+      })
+      .catch((err) => {
+        console.warn('Failed to register Tauri onDragDropEvent listener:', err);
+      });
+
+    return () => {
+      disposed = true;
+      unlisten?.();
+      unlisten = undefined;
+    };
   }
 
   window = {

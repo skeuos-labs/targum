@@ -106,6 +106,22 @@ describe('PlatformAdapter', () => {
       await mock.window.close();
       expect(mock.isClosed).toBe(true);
     });
+
+    it('registers onDragDrop listener and handles simulated events', () => {
+      const events: any[] = [];
+      const unlisten = mock.onDragDrop((e) => events.push(e));
+
+      mock.simulateDragDrop({ type: 'enter', paths: ['/path/to/song.pro'] });
+      mock.simulateDragDrop({ type: 'drop', paths: ['/path/to/song.pro'] });
+
+      expect(events).toHaveLength(2);
+      expect(events[0]).toEqual({ type: 'enter', paths: ['/path/to/song.pro'] });
+      expect(events[1]).toEqual({ type: 'drop', paths: ['/path/to/song.pro'] });
+
+      unlisten();
+      mock.simulateDragDrop({ type: 'drop', paths: ['/path/to/other.vpc'] });
+      expect(events).toHaveLength(2);
+    });
   });
 
   describe('getPlatformAdapter and setPlatformAdapter', () => {
