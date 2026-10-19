@@ -75,44 +75,20 @@ export {
   createAmazingGracePresentation,
 } from './fixtures/amazing-grace.js';
 
-// CLI
+// Batch & Playlist (browser/webview safe)
 export {
-  parseCliArgs,
-  HELP_TEXT,
-  type CliCommand,
-  type CliParsedCommand,
-  type CliParsedResult,
-} from './cli/args.js';
-export {
-  sanitizeFileName,
-  disambiguateFileName,
-  formatCliWarning,
-} from './cli/utils.js';
-export {
-  executeFormatsCommand,
-  type FormatsCommandOptions,
-} from './cli/commands/formats.js';
-export {
-  executeInspectCommand,
-  type InspectCommandOptions,
-} from './cli/commands/inspect.js';
-export {
-  executeConvertCommand,
-  type ConvertCommandOptions,
-} from './cli/commands/convert.js';
-
-// Batch processing
-export {
-  batchConvert,
-  scanBatchInputs,
-  resolveOutputPath,
   generateProPlaylist,
+  type PlaylistPresentationEntry,
+} from './batch/playlist.js';
+
+export {
   type CollisionPolicy,
   type BatchConvertOptions,
   type BatchItemResult,
   type BatchSummary,
   type BatchProgressCallback,
-  type ResolvedOutputPath,
-  type PlaylistPresentationEntry,
-} from './batch/index.js';
+} from './batch/types.js';
+
+// Pure Utilities (no node:fs / node:path dependencies)
+export { sanitizeFileName } from './cli/sanitize.js';
 
