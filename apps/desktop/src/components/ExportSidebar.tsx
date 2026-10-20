@@ -96,7 +96,6 @@ export function ExportSidebar() {
                     placeholder="Combined filename (e.g. WorshipSet)"
                     value={combineName}
                     onChange={(e) => setCombineMode(true, e.target.value)}
-                    className="h-7 px-2.5 text-xs"
                   />
                 )}
               </div>
@@ -112,7 +111,6 @@ export function ExportSidebar() {
                   placeholder="e.g. SundayService"
                   value={libraryName}
                   onChange={(e) => setLibraryName(e.target.value)}
-                  className="h-7 px-2.5 text-xs"
                 />
               </div>
             )}
@@ -133,7 +131,6 @@ export function ExportSidebar() {
             <SelectTrigger
               id="collision-policy-select"
               aria-label="Collision Policy"
-              size="sm"
               className="w-full"
             >
               <SelectValue />
@@ -154,12 +151,11 @@ export function ExportSidebar() {
               placeholder="/path/to/output"
               value={outputDirectory}
               onChange={(e) => setOutputDirectory(e.target.value)}
-              className="h-7 flex-1 truncate px-2.5 text-xs"
+              className="flex-1 truncate"
             />
             <Button
               type="button"
               variant="outline"
-              size="xs"
               onClick={handleBrowseOutput}
               className="shrink-0"
             >

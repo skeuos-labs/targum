@@ -18,7 +18,7 @@ export function ExportFooter({
         type="button"
         disabled={!canExport}
         onClick={onExport}
-        className="w-full justify-center py-2.5 text-xs font-semibold"
+        className="w-full justify-center"
       >
         <CheckCircle2 data-icon="inline-start" />
         <span>

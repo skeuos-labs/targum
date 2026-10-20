@@ -27,7 +27,7 @@ export function SectionsTab({ song, slideToSection }: ReviewTabProps) {
         <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Sections & Lyrics Spine
         </h3>
-        <Button type="button" variant="secondary" size="xs" onClick={handleCopyLyrics}>
+        <Button type="button" variant="secondary" onClick={handleCopyLyrics}>
           {copied ? (
             <>
               <Check data-icon="inline-start" className="text-emerald-500" />

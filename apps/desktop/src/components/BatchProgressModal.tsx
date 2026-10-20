@@ -84,7 +84,6 @@ export function BatchProgressModal() {
               <Button
                 type="button"
                 variant="ghost"
-                size="icon-sm"
                 aria-label="Dismiss"
                 onClick={handleClose}
               >
@@ -125,13 +124,12 @@ export function BatchProgressModal() {
               <Button
                 type="button"
                 variant="outline"
-                size="xs"
                 onClick={handleOpenFolder}
               >
                 <FolderOpen data-icon="inline-start" />
                 <span>Open Output Folder</span>
               </Button>
-              <Button type="button" size="xs" onClick={handleClose}>
+              <Button type="button" onClick={handleClose}>
                 Close
               </Button>
             </div>

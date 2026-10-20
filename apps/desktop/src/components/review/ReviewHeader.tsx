@@ -54,9 +54,8 @@ export function ReviewHeader({
           <Button
             type="button"
             variant="outline"
-            size="xs"
             onClick={onShowWarnings}
-            className="shrink-0 rounded-full border-amber-500/30 bg-amber-500/15 text-[11px] font-semibold text-amber-600 hover:bg-amber-500/25 hover:text-amber-600 dark:text-amber-400"
+            className="shrink-0 rounded-full border-amber-500/30 bg-amber-500/15 text-amber-600 hover:bg-amber-500/25 hover:text-amber-600 dark:text-amber-400"
           >
             <AlertTriangle data-icon="inline-start" />
             <span>
