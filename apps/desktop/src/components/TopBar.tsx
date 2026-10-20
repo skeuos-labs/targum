@@ -61,7 +61,8 @@ export function TopBar() {
           <Select value={theme} onValueChange={(value) => setTheme(value as Theme)}>
             <SelectTrigger
               aria-label="Theme"
-              className="w-auto"
+              size="sm"
+              className="h-7 w-auto gap-1 rounded border-border bg-background px-2 text-xs"
             >
               <SelectValue />
             </SelectTrigger>
@@ -80,6 +81,7 @@ export function TopBar() {
           <Button
             type="button"
             variant="ghost"
+            size="icon-xs"
             aria-label="Minimize"
             onClick={handleMinimize}
           >
@@ -88,6 +90,7 @@ export function TopBar() {
           <Button
             type="button"
             variant="ghost"
+            size="icon-xs"
             aria-label="Maximize"
             onClick={handleToggleMaximize}
           >
@@ -96,6 +99,7 @@ export function TopBar() {
           <Button
             type="button"
             variant="ghost"
+            size="icon-xs"
             aria-label="Close"
             onClick={handleClose}
             className="hover:bg-destructive hover:text-destructive-foreground"

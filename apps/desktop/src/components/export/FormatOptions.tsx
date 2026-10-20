@@ -37,7 +37,7 @@ export function FormatOptions({
               variant={isSelected ? 'default' : 'outline'}
               aria-label={f.label}
               onClick={() => onChange(f.id)}
-              className="h-auto justify-between"
+              className="h-auto justify-between rounded-md px-3 py-2 text-xs font-normal"
             >
               <span className="flex items-center gap-2">
                 <FileBox data-icon="inline-start" className="opacity-80" />

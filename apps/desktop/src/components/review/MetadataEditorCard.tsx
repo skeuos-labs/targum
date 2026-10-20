@@ -53,7 +53,7 @@ export function MetadataEditorCard({
             updateSongTitle(source.id, song.id, e.target.value)
           }
           onBlur={flashSaved}
-          className="font-bold"
+          className="h-9 px-3 text-base font-bold"
         />
       </div>
 
@@ -88,6 +88,7 @@ export function MetadataEditorCard({
         <Button
           type="button"
           variant="link"
+          size="xs"
           onClick={() => setIsDrawerOpen(!isDrawerOpen)}
           className="h-auto p-0 select-none"
         >
@@ -142,6 +143,7 @@ export function MetadataEditorCard({
                   updateSongMetadata(source.id, song.id, { notes: e.target.value })
                 }
                 onBlur={flashSaved}
+                className="p-2.5 text-xs"
               />
             </div>
 
@@ -195,6 +197,7 @@ function MetaField({
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
         onBlur={onBlur}
+        className="h-8 px-2.5 text-xs"
       />
     </div>
   );

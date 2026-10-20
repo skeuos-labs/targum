@@ -81,8 +81,9 @@ export function SourcesSidebar() {
           {sources.length > 0 && (
             <Button
               variant="ghost"
+              size="xs"
               onClick={clearAll}
-              className="h-auto p-0 text-muted-foreground hover:text-destructive"
+              className="h-auto p-0 text-[11px] text-muted-foreground hover:text-destructive"
             >
               Clear All
             </Button>
@@ -90,11 +91,11 @@ export function SourcesSidebar() {
         </div>
 
         <div className="grid grid-cols-2 gap-2">
-          <Button variant="outline" onClick={handleAddFiles} className="justify-center">
+          <Button variant="outline" size="xs" onClick={handleAddFiles} className="justify-center">
             <FilePlus data-icon="inline-start" />
             <span>Add Files</span>
           </Button>
-          <Button variant="outline" onClick={handleAddFolder} className="justify-center">
+          <Button variant="outline" size="xs" onClick={handleAddFolder} className="justify-center">
             <FolderPlus data-icon="inline-start" />
             <span>Add Folder</span>
           </Button>
