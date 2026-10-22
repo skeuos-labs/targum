@@ -28,7 +28,6 @@ import { useThemeStore } from '../src/state/themeStore';
 import { useSourceStore } from '../src/state/sourceStore';
 import { useExportStore } from '../src/state/exportStore';
 import { TopBar } from '../src/components/TopBar';
-import { StatusBar } from '../src/components/StatusBar';
 import { SourcesSidebar } from '../src/components/SourcesSidebar';
 import { ReviewWorkspace } from '../src/components/ReviewWorkspace';
 import { ExportSidebar } from '../src/components/ExportSidebar';
@@ -121,13 +120,6 @@ describe('Core Desktop UI Components', () => {
         expect(useSourceStore.getState().sources).toHaveLength(1);
       });
       expect(useSourceStore.getState().sources[0]!.name).toBe('Dropped.pro');
-    });
-
-    it('renders status bar with zero counts in empty state', () => {
-      render(<StatusBar />);
-      expect(screen.getByText(/0 files/i)).toBeDefined();
-      expect(screen.getByText(/0 songs/i)).toBeDefined();
-      expect(screen.getByText(/ready/i)).toBeDefined();
     });
   });
 
@@ -502,14 +494,38 @@ describe('Core Desktop UI Components', () => {
   });
 
   describe('App Shell Layout', () => {
-    it('renders full 3-column workspace with TopBar and StatusBar', async () => {
+    it('renders full 3-column workspace when sources are loaded (no StatusBar)', () => {
+      useSourceStore.setState({
+        sources: [
+          {
+            id: 'src-ag',
+            path: '/test/Amazing Grace.pro',
+            name: 'Amazing Grace.pro',
+            format: 'pro',
+            library: { presentations: [AMAZING_GRACE] },
+            warnings: [],
+            selectedSongId: AMAZING_GRACE.id,
+          },
+        ],
+        selectedSourceId: 'src-ag',
+        selectedSongId: AMAZING_GRACE.id,
+        selectedSongs: new Set([`src-ag:${AMAZING_GRACE.id}`]),
+      });
+
       render(<App />);
 
       expect(screen.getByText('Show Converter')).toBeDefined();
       expect(screen.getByRole('heading', { name: /sources/i })).toBeDefined();
-      expect(screen.getByText('Drop presentation files to get started')).toBeDefined();
+      expect(screen.getAllByText('Amazing Grace.pro').length).toBeGreaterThanOrEqual(1);
       expect(screen.getByRole('heading', { name: /export/i })).toBeDefined();
-      expect(screen.getByText(/ready/i)).toBeDefined();
+      expect(screen.queryByText(/^Ready$/i)).toBeNull();
+    });
+
+    it('renders Import stage instead of the workbench when empty', () => {
+      render(<App />);
+
+      expect(screen.getByText('Drop songs to convert')).toBeDefined();
+      expect(screen.queryByRole('heading', { name: /sources/i })).toBeNull();
     });
   });
 });

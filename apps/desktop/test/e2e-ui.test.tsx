@@ -80,10 +80,8 @@ describe('End-to-End Real-World Sample UI Integration', () => {
     // 1. Render main desktop Application
     render(<App />);
 
-    // Initially shows empty state in ReviewWorkspace
-    expect(
-      screen.getByText(/drop presentation files to get started/i)
-    ).toBeDefined();
+    // Initially shows the Import stage (empty shell)
+    expect(screen.getByText(/drop songs to convert/i)).toBeDefined();
 
     // 2. Add real-world sample files to sourceStore via adapter.addFiles
     await act(async () => {
@@ -94,6 +92,21 @@ describe('End-to-End Real-World Sample UI Integration', () => {
           mockAdapter
         );
     });
+
+    // Toast fires once on the 0 -> N crossing, then auto-dismisses (~2s)
+    expect(await screen.findByText('Imported 2 songs')).toBeDefined();
+    expect(screen.getAllByText('Imported 2 songs')).toHaveLength(1);
+    await waitFor(
+      () => {
+        expect(screen.queryByText('Imported 2 songs')).toBeNull();
+      },
+      { timeout: 4000 }
+    );
+
+    // No StatusBar after load
+    expect(screen.queryByText(/^Ready$/i)).toBeNull();
+    expect(screen.queryByText(/^\d+ files$/)).toBeNull();
+    expect(screen.queryByText(/^\d+ songs$/)).toBeNull();
 
     // 3. Verify SourcesSidebar lists both imported sources
     expect(screen.getAllByText('IZY-original.pro').length).toBeGreaterThanOrEqual(1);

@@ -1,12 +1,70 @@
 // @vitest-environment jsdom
-import { render, screen } from '@testing-library/react';
-import { describe, it, expect } from 'vitest';
+import { render, screen, act, waitFor, cleanup } from '@testing-library/react';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { AMAZING_GRACE, writePro } from '@show-converter/engine';
+import { MockPlatformAdapter, setPlatformAdapter } from '../src/platform';
+import { useSourceStore } from '../src/state/sourceStore';
+import { useUiStore } from '../src/state/uiStore';
 import App from '../src/App';
 
 describe('App', () => {
+  let mockAdapter: MockPlatformAdapter;
+
+  beforeEach(async () => {
+    mockAdapter = new MockPlatformAdapter();
+    setPlatformAdapter(mockAdapter);
+
+    useSourceStore.getState().clearAll();
+    useUiStore.setState({ toast: null });
+
+    const bytes = writePro(AMAZING_GRACE);
+    if (!bytes.ok) {
+      throw bytes.error;
+    }
+    await mockAdapter.writeFile('/samples/one.pro', bytes.bytes);
+    await mockAdapter.writeFile('/samples/two.pro', bytes.bytes);
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+  });
+
   it('renders desktop shell header', () => {
     render(<App />);
     expect(screen.getByText('Show Converter')).toBeDefined();
   });
-});
 
+  it('renders Import stage copy when empty with no StatusBar remnants', () => {
+    render(<App />);
+
+    expect(screen.getByText('Drop songs to convert')).toBeDefined();
+    expect(screen.queryByText(/^Ready$/i)).toBeNull();
+    expect(screen.queryByText(/^\d+ files$/)).toBeNull();
+    expect(screen.queryByText(/^\d+ songs$/)).toBeNull();
+  });
+
+  it('fires import toast only on 0->N crossing and auto-dismisses after ~2s', async () => {
+    render(<App />);
+
+    await act(async () => {
+      await useSourceStore.getState().addFiles(['/samples/one.pro'], mockAdapter);
+    });
+    expect(await screen.findByText('Imported 1 song')).toBeDefined();
+
+    // Later adds must not re-fire the toast
+    await act(async () => {
+      await useSourceStore.getState().addFiles(['/samples/two.pro'], mockAdapter);
+    });
+    expect(screen.queryByText('Imported 2 songs')).toBeNull();
+    const toast = useUiStore.getState().toast;
+    expect(toast === null || toast.message === 'Imported 1 song').toBe(true);
+
+    await waitFor(
+      () => {
+        expect(screen.queryByText('Imported 1 song')).toBeNull();
+      },
+      { timeout: 4000 }
+    );
+  });
+});

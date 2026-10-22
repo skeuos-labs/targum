@@ -1,16 +1,31 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { TopBar } from './components/TopBar';
-import { StatusBar } from './components/StatusBar';
 import { SourcesSidebar } from './components/SourcesSidebar';
 import { ReviewWorkspace } from './components/ReviewWorkspace';
 import { ExportSidebar } from './components/ExportSidebar';
 import { BatchProgressModal } from './components/BatchProgressModal';
+import { ImportStage } from './components/import/ImportStage';
+import { Toast } from './components/Toast';
 import { getPlatformAdapter } from './platform';
 import { useSourceStore } from './state/sourceStore';
 import { useDndStore } from './state/dndStore';
+import { useUiStore } from './state/uiStore';
 
 export default function App() {
+  const sources = useSourceStore((s) => s.sources);
   const addFiles = useSourceStore((s) => s.addFiles);
+  const showToast = useUiStore((s) => s.showToast);
+  const prevSourcesLengthRef = useRef(sources.length);
+
+  // Toast only on the 0 -> N crossing (initial import from empty stage)
+  useEffect(() => {
+    const prev = prevSourcesLengthRef.current;
+    const next = sources.length;
+    if (prev === 0 && next > 0) {
+      showToast(`Imported ${next} ${next === 1 ? 'song' : 'songs'}`);
+    }
+    prevSourcesLengthRef.current = next;
+  }, [sources.length, showToast]);
 
   // Native OS drag-drop (Tauri). HTML5 DnD is swallowed by WebView2 when
   // dragDropEnabled is true (default), so this is the only path on desktop.
@@ -80,13 +95,17 @@ export default function App() {
   return (
     <div className="flex h-screen w-screen flex-col bg-background text-foreground select-none overflow-hidden">
       <TopBar />
-      <div className="flex flex-1 overflow-hidden">
-        <SourcesSidebar />
-        <ReviewWorkspace />
-        <ExportSidebar />
-      </div>
-      <StatusBar />
+      {sources.length === 0 ? (
+        <ImportStage />
+      ) : (
+        <div className="flex flex-1 overflow-hidden">
+          <SourcesSidebar />
+          <ReviewWorkspace />
+          <ExportSidebar />
+        </div>
+      )}
       <BatchProgressModal />
+      <Toast />
     </div>
   );
 }
