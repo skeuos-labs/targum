@@ -2,7 +2,11 @@ import { getSectionStyle } from '../../lib/sectionStyle';
 import { getSlidePlainText } from '../../lib/slideText';
 import type { ReviewTabProps } from './types';
 
-export function SlidesTab({ song, slideToSection }: ReviewTabProps) {
+/** 16:9 projection simulator grid. */
+export function ProjectionView({
+  song,
+  slideToSection,
+}: Pick<ReviewTabProps, 'song' | 'slideToSection'>) {
   return (
     <div className="mx-auto max-w-7xl space-y-4">
       <div className="flex items-center justify-between border-b border-border pb-2">

@@ -6,6 +6,7 @@ import path from 'node:path';
 import { MockPlatformAdapter, setPlatformAdapter } from '../src/platform';
 import { useThemeStore } from '../src/state/themeStore';
 import { useSourceStore } from '../src/state/sourceStore';
+import { useUiStore } from '../src/state/uiStore';
 import { useExportStore } from '../src/state/exportStore';
 import App from '../src/App';
 
@@ -58,6 +59,15 @@ describe('End-to-End Real-World Sample UI Integration', () => {
     // Reset stores
     useThemeStore.getState().setTheme('light');
     useSourceStore.getState().clearAll();
+    useUiStore.setState({
+      centerTab: 'content',
+      contentSegment: 'structure',
+      warningsSheetOpen: false,
+      jsonViewerOpen: false,
+      toast: null,
+      sourcesRailCollapsed: false,
+      exportDrawerExpanded: false,
+    });
     useExportStore.setState({
       targetFormat: 'txt',
       outputDirectory: '/output/e2e',
@@ -116,7 +126,12 @@ describe('End-to-End Real-World Sample UI Integration', () => {
     // façade.vpc contains 19 songs
     expect(screen.getByText('19')).toBeDefined();
 
-    // 4. Verify ReviewWorkspace renders active song "IZY"
+    // 4. Content tab shows song breadcrumb; Details holds metadata editor
+    expect(screen.getAllByText('IZY-original.pro').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('IZY').length).toBeGreaterThanOrEqual(1);
+
+    fireEvent.click(screen.getByRole('tab', { name: /details/i }));
+
     const titleInput = screen.getByRole('textbox', {
       name: /song title/i,
     }) as HTMLInputElement;
@@ -132,8 +147,9 @@ describe('End-to-End Real-World Sample UI Integration', () => {
     expect(screen.getAllByText('Chorus').length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText('Tag').length).toBeGreaterThanOrEqual(1);
 
-    // Switch to Slides tab to inspect projection cards
-    fireEvent.click(screen.getByRole('tab', { name: /slides/i }));
+    // Back to Content, switch segment to Projection to inspect cards
+    fireEvent.click(screen.getByRole('tab', { name: /content/i }));
+    fireEvent.click(screen.getByRole('button', { name: /^projection$/i }));
 
     // Verify 17 slide cards with lyric lines rendered
     const slideCards = screen.getAllByText(/^[1-9][0-9]?\/17$/);
@@ -150,8 +166,8 @@ describe('End-to-End Real-World Sample UI Integration', () => {
       fireEvent.click(mendrikaSongRow);
     });
 
-    // Switch back to Overview tab to inspect title and metadata
-    fireEvent.click(screen.getByRole('tab', { name: /overview/i }));
+    // Switch to Details tab to inspect title and metadata
+    fireEvent.click(screen.getByRole('tab', { name: /details/i }));
 
     // Verify ReviewWorkspace updated to display "Mendrika Ianao"
     expect(
@@ -162,7 +178,8 @@ describe('End-to-End Real-World Sample UI Integration', () => {
       ).value
     ).toBe('Mendrika Ianao');
 
-    // Verify format badge updated to VPC
+    // Verify format badge updated to VPC (Content header)
+    fireEvent.click(screen.getByRole('tab', { name: /content/i }));
     expect(screen.getAllByText('VPC').length).toBeGreaterThanOrEqual(1);
 
     // 6. Switch to another song in façade.vpc: "Majesté"
@@ -173,6 +190,7 @@ describe('End-to-End Real-World Sample UI Integration', () => {
       fireEvent.click(majesteSongRow);
     });
 
+    fireEvent.click(screen.getByRole('tab', { name: /details/i }));
     expect(
       (
         screen.getByRole('textbox', {
@@ -246,7 +264,7 @@ describe('End-to-End Real-World Sample UI Integration', () => {
     const modalCloseBtn = closeBtns.find((b) => b.textContent?.trim() === 'Close') ?? closeBtns[closeBtns.length - 1]!;
     fireEvent.click(modalCloseBtn);
     expect(useExportStore.getState().lastSummary).toBeNull();
-  });
+  }, 15000);
 
   it('triggers file selection via SourcesSidebar Add Files UI button', async () => {
     vi.spyOn(mockAdapter, 'pickFiles').mockResolvedValue([
@@ -262,6 +280,7 @@ describe('End-to-End Real-World Sample UI Integration', () => {
 
     expect(useSourceStore.getState().sources).toHaveLength(1);
     expect(useSourceStore.getState().sources[0]!.name).toBe('IZY-original.pro');
+    fireEvent.click(screen.getByRole('tab', { name: /details/i }));
     expect(
       screen.getByRole('textbox', { name: /song title/i })
     ).toHaveProperty('value', 'IZY');

@@ -1,45 +1,16 @@
-import { Check, Copy } from 'lucide-react';
 import type { Slide } from '@show-converter/engine';
-import { formatLyricsForCopy } from '../../lib/lyrics';
-import { getSlidePlainText } from '../../lib/slideText';
 import { getSectionStyle } from '../../lib/sectionStyle';
-import { useFlash } from '../../lib/useFlash';
-import { Button } from '../ui/button';
+import { getSlidePlainText } from '../../lib/slideText';
 import type { ReviewTabProps } from './types';
 
-export function SectionsTab({ song, slideToSection }: ReviewTabProps) {
-  const [copied, flashCopied] = useFlash();
-
-  const handleCopyLyrics = async () => {
-    try {
-      if (typeof navigator !== 'undefined' && navigator.clipboard) {
-        await navigator.clipboard.writeText(formatLyricsForCopy(song, slideToSection));
-        flashCopied();
-      }
-    } catch {
-      // clipboard fallback
-    }
-  };
-
+/** Sections & Lyrics spine (header owns Copy lyrics). */
+export function StructureView({ song }: Pick<ReviewTabProps, 'song'>) {
   return (
     <div className="mx-auto max-w-4xl space-y-4">
       <div className="flex items-center justify-between border-b border-border pb-2">
         <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Sections & Lyrics Spine
         </h3>
-        <Button type="button" variant="secondary" size="xs" onClick={handleCopyLyrics}>
-          {copied ? (
-            <>
-              <Check data-icon="inline-start" className="text-emerald-500" />
-              <span className="text-emerald-500">Copied!</span>
-            </>
-          ) : (
-            <>
-              <Copy data-icon="inline-start" />
-              <span>Copy Lyrics</span>
-            </>
-          )}
-        </Button>
       </div>
 
       <div className="space-y-4">

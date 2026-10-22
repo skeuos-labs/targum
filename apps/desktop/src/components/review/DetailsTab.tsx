@@ -4,7 +4,8 @@ import { MetadataEditorCard } from './MetadataEditorCard';
 import { ArrangementFlowCard } from './ArrangementFlowCard';
 import type { ReviewTabProps } from './types';
 
-export function OverviewTab({
+/** Metadata editor + metrics + arrangement (Details tab). */
+export function DetailsTab({
   source,
   song,
   slideToSection,

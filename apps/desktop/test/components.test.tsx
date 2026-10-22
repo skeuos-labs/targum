@@ -76,6 +76,13 @@ describe('Core Desktop UI Components', () => {
     useThemeStore.getState().setTheme('light');
     useSourceStore.getState().clearAll();
     useUiStore.getState().setSourcesRailCollapsed(false);
+    useUiStore.setState({
+      centerTab: 'content',
+      contentSegment: 'structure',
+      warningsSheetOpen: false,
+      jsonViewerOpen: false,
+      toast: null,
+    });
     useExportStore.setState({
       targetFormat: 'pro',
       outputDirectory: '/output',
@@ -145,10 +152,10 @@ describe('Core Desktop UI Components', () => {
       });
     });
 
-    it('renders breadcrumbs, subtitle, OK diagnostics badge, and 5 tab buttons', () => {
+    it('renders breadcrumbs, subtitle, OK diagnostics badge, and Content|Details tabs', () => {
       render(<ReviewWorkspace />);
 
-      // Breadcrumbs
+      // Breadcrumbs (Content header)
       expect(screen.getByText('Amazing Grace.pro')).toBeDefined();
       expect(screen.getAllByText('Amazing Grace').length).toBeGreaterThanOrEqual(1);
       expect(screen.getByText('PRO')).toBeDefined();
@@ -159,16 +166,21 @@ describe('Core Desktop UI Components', () => {
       // Subtitle line
       expect(screen.getByText(/1 song · 5 sections · 9 slides/i)).toBeDefined();
 
-      // 5 Tabs
-      expect(screen.getByRole('tab', { name: /overview/i })).toBeDefined();
-      expect(screen.getByRole('tab', { name: /sections/i })).toBeDefined();
-      expect(screen.getByRole('tab', { name: /slides/i })).toBeDefined();
-      expect(screen.getByRole('tab', { name: /warnings/i })).toBeDefined();
-      expect(screen.getByRole('tab', { name: /raw json/i })).toBeDefined();
+      // Content | Details | overflow
+      expect(screen.getByRole('tab', { name: /content/i })).toBeDefined();
+      expect(screen.getByRole('tab', { name: /details/i })).toBeDefined();
+      expect(screen.getByRole('button', { name: 'More' })).toBeDefined();
+      expect(screen.queryByRole('tab', { name: /overview/i })).toBeNull();
+      expect(screen.queryByRole('tab', { name: /sections/i })).toBeNull();
+      expect(screen.queryByRole('tab', { name: /slides/i })).toBeNull();
+      expect(screen.queryByRole('tab', { name: /warnings/i })).toBeNull();
+      expect(screen.queryByRole('tab', { name: /raw json/i })).toBeNull();
     });
 
-    it('renders Overview tab with editable inputs, collapsible drawer, metrics strip, and arrangement flow', async () => {
+    it('renders Details tab with editable inputs, collapsible drawer, metrics strip, and arrangement flow', async () => {
       render(<ReviewWorkspace />);
+
+      fireEvent.click(screen.getByRole('tab', { name: /details/i }));
 
       // Title Input
       const titleInput = screen.getByDisplayValue('Amazing Grace') as HTMLInputElement;
@@ -207,7 +219,7 @@ describe('Core Desktop UI Components', () => {
       expect(screen.getByText('Short')).toBeDefined();
     });
 
-    it('renders Sections tab with spine layout and copy lyrics button', async () => {
+    it('renders Structure spine by default and Copy lyrics in header', async () => {
       // Mock navigator.clipboard
       const writeTextSpy = vi.fn().mockResolvedValue(undefined);
       Object.assign(navigator, {
@@ -216,14 +228,11 @@ describe('Core Desktop UI Components', () => {
 
       render(<ReviewWorkspace />);
 
-      // Switch to Sections tab
-      fireEvent.click(screen.getByRole('tab', { name: /sections/i }));
-
-      // Section names in rotated spine
+      // Section names in rotated spine (Structure segment, default)
       expect(screen.getAllByText('Verse 1').length).toBeGreaterThanOrEqual(1);
       expect(screen.getAllByText('Chorus').length).toBeGreaterThanOrEqual(1);
 
-      // Copy lyrics button
+      // Copy lyrics button (header owns it; visible in both segments)
       const copyBtn = screen.getByRole('button', { name: /copy lyrics/i });
       expect(copyBtn).toBeDefined();
       fireEvent.click(copyBtn);
@@ -231,11 +240,11 @@ describe('Core Desktop UI Components', () => {
       expect(await screen.findByText(/copied!/i)).toBeDefined();
     });
 
-    it('renders Slides tab with 16:9 cards, slide fractions, and consecutive section deduplication', () => {
+    it('renders Projection segment with 16:9 cards, slide fractions, and consecutive section deduplication', () => {
       render(<ReviewWorkspace />);
 
-      // Switch to Slides tab
-      fireEvent.click(screen.getByRole('tab', { name: /slides/i }));
+      // Switch segment to Projection
+      fireEvent.click(screen.getByRole('button', { name: /^projection$/i }));
 
       // 9 Slide Cards with 16:9 badges (1/9 .. 9/9)
       const slideBadges = screen.getAllByText(/^[1-9]\/9$/);
@@ -244,14 +253,19 @@ describe('Core Desktop UI Components', () => {
       // Verify specific lyrics in slide cards
       expect(screen.getByText(/Amazing grace! How sweet the sound/i)).toBeDefined();
       expect(screen.getByText(/When we've been there ten thousand years/i)).toBeDefined();
+
+      // Copy lyrics still present in Projection segment
+      expect(screen.getByRole('button', { name: /copy lyrics/i })).toBeDefined();
     });
 
-    it('renders Warnings tab with clean parse message when 0 warnings, or warning cards when present', () => {
+    it('opens WarningsSheet with clean parse message when 0 warnings, or warning cards when present', () => {
       const { rerender } = render(<ReviewWorkspace />);
 
-      // Switch to Warnings tab
-      fireEvent.click(screen.getByRole('tab', { name: /warnings/i }));
-      expect(screen.getByText(/no warnings for this file\. clean parse\./i)).toBeDefined();
+      // Overflow → Full diagnostics (empty)
+      fireEvent.click(screen.getByRole('button', { name: 'More' }));
+      fireEvent.click(screen.getByRole('menuitem', { name: /full diagnostics/i }));
+      expect(screen.getByText(/no warnings/i)).toBeDefined();
+      fireEvent.click(screen.getByRole('button', { name: /close/i }));
 
       // Re-render with a warning
       act(() => {
@@ -278,14 +292,14 @@ describe('Core Desktop UI Components', () => {
 
       rerender(<ReviewWorkspace />);
 
-      // Clicking amber warning badge in header navigates to Warnings tab
-      const warningBadge = screen.getByText(/1 warning/i);
+      // Clicking warning chip in header opens WarningsSheet
+      const warningBadge = screen.getByRole('button', { name: /1 info/i });
       fireEvent.click(warningBadge);
       expect(screen.getByText(/PRO_STYLES_NOT_EXTRACTED/i)).toBeDefined();
       expect(screen.getByText(/Text styling was ignored/i)).toBeDefined();
     });
 
-    it('renders Raw JSON tab with recursive color-coded tree and copy JSON button', async () => {
+    it('opens Raw JSON viewer via overflow with recursive color-coded tree and copy JSON', async () => {
       const writeTextSpy = vi.fn().mockResolvedValue(undefined);
       Object.assign(navigator, {
         clipboard: { writeText: writeTextSpy },
@@ -293,8 +307,9 @@ describe('Core Desktop UI Components', () => {
 
       render(<ReviewWorkspace />);
 
-      // Switch to Raw JSON tab
-      fireEvent.click(screen.getByRole('tab', { name: /raw json/i }));
+      // Overflow → Raw JSON AST
+      fireEvent.click(screen.getByRole('button', { name: 'More' }));
+      fireEvent.click(screen.getByRole('menuitem', { name: /raw json ast/i }));
 
       // Color-coded keys
       expect(screen.getByText('"title"')).toBeDefined();

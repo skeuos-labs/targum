@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useRef } from 'react';
 import { Presentation as PresentationIcon } from 'lucide-react';
 import { useSourceStore } from '../state/sourceStore';
 import { getPlatformAdapter } from '../platform';
@@ -7,15 +7,13 @@ import { DropOverlay } from './DropOverlay';
 import { useDndStore } from '../state/dndStore';
 import { formatSourceFormatLabel } from '../lib/formatLabels';
 import { useSlideToSectionMap } from '../lib/useSlideToSectionMap';
+import { useUiStore, type CenterTab } from '../state/uiStore';
 import { Tabs, TabsContent } from './ui/tabs';
 import { ReviewHeader } from './review/ReviewHeader';
-import {
-  DEFAULT_REVIEW_TAB,
-  REVIEW_TABS,
-  type ReviewTab,
-} from './review/tabsRegistry';
-
-export type { ReviewTab };
+import { ContentTab } from './review/ContentTab';
+import { DetailsTab } from './review/DetailsTab';
+import { WarningsSheet } from './review/WarningsSheet';
+import { JsonViewerModal } from './review/JsonViewerModal';
 
 export function ReviewWorkspace() {
   const sources = useSourceStore((s) => s.sources);
@@ -23,7 +21,8 @@ export function ReviewWorkspace() {
   const selectedSongId = useSourceStore((s) => s.selectedSongId);
   const addFiles = useSourceStore((s) => s.addFiles);
   const isDraggingOver = useDndStore((s) => s.dragging && s.target === 'center');
-  const [activeTab, setActiveTab] = useState<ReviewTab>(DEFAULT_REVIEW_TAB);
+  const centerTab = useUiStore((s) => s.centerTab);
+  const setCenterTab = useUiStore((s) => s.setCenterTab);
 
   const adapterRef = useRef(getPlatformAdapter());
   const { ref: dropRef } = useDropTarget({
@@ -92,32 +91,33 @@ export function ReviewWorkspace() {
     >
       <DropOverlay
         targetId="center"
-        title="Drop presentation files to import"
+        title="Drop files to import"
         subtitle="Supports .pro, .pro6, .vpc, .show, .pptx, .txt"
       />
 
       <Tabs
-        value={activeTab}
-        onValueChange={(v) => setActiveTab(v as ReviewTab)}
+        value={centerTab}
+        onValueChange={(v) => setCenterTab(v as CenterTab)}
         className="flex min-h-0 flex-1 flex-col overflow-hidden"
       >
-        <ReviewHeader
-          format={currentSource.format}
-          fileName={currentSource.name}
-          songTitle={activeSong.title}
-          subtitle={buildSubtitle(currentSource, activeSong)}
-          warningCount={warnings.length}
-          onShowWarnings={() => setActiveTab('warnings')}
-        />
+        <ReviewHeader onValueChange={setCenterTab} />
 
-        <div className="min-h-0 flex-1 overflow-y-auto p-6 select-text">
-          {REVIEW_TABS.map(({ id, Component }) => (
-            <TabsContent key={id} value={id} className="mt-0">
-              <Component {...tabProps} />
-            </TabsContent>
-          ))}
+        <div className="min-h-0 flex-1 overflow-y-auto p-6 pt-4 select-text">
+          <TabsContent value="content" className="mt-0">
+            <ContentTab {...tabProps} subtitle={buildSubtitle(currentSource, activeSong)} />
+          </TabsContent>
+          <TabsContent value="details" className="mt-0">
+            <DetailsTab
+              source={currentSource}
+              song={activeSong}
+              slideToSection={slideToSection}
+            />
+          </TabsContent>
         </div>
       </Tabs>
+
+      <WarningsSheet warnings={warnings} />
+      <JsonViewerModal song={activeSong} />
     </main>
   );
 }
