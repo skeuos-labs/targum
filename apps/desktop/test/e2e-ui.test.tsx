@@ -126,6 +126,40 @@ describe('End-to-End Real-World Sample UI Integration', () => {
     // façade.vpc contains 19 songs
     expect(screen.getByText('19')).toBeDefined();
 
+    // New sources render expanded (expansion map defaults open for new ids):
+    // song rows from both files are visible with no click.
+    expect(screen.getByText('Mendrika Ianao')).toBeDefined();
+    expect(screen.getAllByText('IZY').length).toBeGreaterThanOrEqual(1);
+
+    // First import: first source + its first song are auto-selected
+    const imported = useSourceStore.getState();
+    expect(imported.sources.length).toBe(2);
+    expect(imported.selectedSourceId).toBe(imported.sources[0]!.id);
+    expect(imported.selectedSongId).toBe(
+      imported.sources[0]!.library.presentations[0]!.id
+    );
+
+    // Content tab + Structure segment are the defaults after import
+    expect(useUiStore.getState().centerTab).toBe('content');
+    expect(useUiStore.getState().contentSegment).toBe('structure');
+    expect(
+      screen.getByRole('tab', { name: /content/i }).getAttribute('aria-selected')
+    ).toBe('true');
+    expect(
+      screen
+        .getByRole('button', { name: /^structure$/i })
+        .getAttribute('aria-pressed')
+    ).toBe('true');
+
+    // Structure spine shows fixture section names; Copy lyrics present
+    expect(screen.getByText(/sections & lyrics spine/i)).toBeDefined();
+    expect(screen.getAllByText('Verse').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByRole('button', { name: /copy lyrics/i })).toBeDefined();
+
+    // Raw JSON is never inline in the review pane — closed until opened via overflow
+    expect(screen.queryByText(/canonical presentation json/i)).toBeNull();
+    expect(screen.queryByRole('menu')).toBeNull();
+
     // 4. Content tab shows song breadcrumb; Details holds metadata editor
     expect(screen.getAllByText('IZY-original.pro').length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText('IZY').length).toBeGreaterThanOrEqual(1);
@@ -157,6 +191,17 @@ describe('End-to-End Real-World Sample UI Integration', () => {
 
     // Verify lyric line in first slide
     expect(screen.getByText(/Izy mamatsy ahy isan'andro/i)).toBeDefined();
+
+    // Raw JSON opens only via the overflow (⋯) menu, never as an inline tab/pane
+    fireEvent.click(screen.getByRole('button', { name: 'More' }));
+    fireEvent.click(
+      await screen.findByRole('menuitem', { name: /raw json ast/i })
+    );
+    expect(await screen.findByText(/canonical presentation json/i)).toBeDefined();
+    fireEvent.keyDown(document, { key: 'Escape', code: 'Escape' });
+    await waitFor(() => {
+      expect(screen.queryByText(/canonical presentation json/i)).toBeNull();
+    });
 
     // 5. Switch active song in multi-song accordion to "Mendrika Ianao" from façade.vpc
     const mendrikaSongRow = screen.getByText('Mendrika Ianao');
@@ -266,7 +311,42 @@ describe('End-to-End Real-World Sample UI Integration', () => {
     const modalCloseBtn = closeBtns.find((b) => b.textContent?.trim() === 'Close') ?? closeBtns[closeBtns.length - 1]!;
     fireEvent.click(modalCloseBtn);
     expect(useExportStore.getState().lastSummary).toBeNull();
-  }, 15000);
+
+    // 11. Failed items are reported, never silent success: force one write to
+    // fail (collision policy is still overwrite) and re-export.
+    const originalWrite = mockAdapter.writeFile.bind(mockAdapter);
+    vi.spyOn(mockAdapter, 'writeFile').mockImplementation(async (p, b) => {
+      if (p.includes('Majesté')) {
+        throw new Error('simulated disk failure');
+      }
+      await originalWrite(p, b);
+    });
+    const exportAgainBtn = screen.getByRole('button', {
+      name: /export 20 songs/i,
+    });
+    expect((exportAgainBtn as HTMLButtonElement).disabled).toBe(false);
+    await act(async () => {
+      fireEvent.click(exportAgainBtn);
+    });
+    expect(screen.getByText('Export Complete')).toBeDefined();
+    expect(screen.getByText(/19 succeeded/i)).toBeDefined();
+    expect(screen.getByText(/1 failed/i)).toBeDefined();
+    const failedSummary = useExportStore.getState().lastSummary;
+    expect(failedSummary?.successCount).toBe(19);
+    expect(failedSummary?.failedCount).toBe(1);
+    expect(failedSummary?.skippedCount).toBe(0);
+
+    // StatusBar remains absent throughout (including after export)
+    expect(screen.queryByText(/^Ready$/i)).toBeNull();
+    expect(screen.queryByText(/^\d+ songs$/)).toBeNull();
+
+    const closeBtns2 = screen.getAllByRole('button', { name: /close/i });
+    const modalCloseBtn2 =
+      closeBtns2.find((b) => b.textContent?.trim() === 'Close') ??
+      closeBtns2[closeBtns2.length - 1]!;
+    fireEvent.click(modalCloseBtn2);
+    expect(useExportStore.getState().lastSummary).toBeNull();
+  }, 20000);
 
   it('triggers file selection via SourcesSidebar Add Files UI button', async () => {
     vi.spyOn(mockAdapter, 'pickFiles').mockResolvedValue([
