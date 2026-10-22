@@ -199,7 +199,9 @@ describe('End-to-End Real-World Sample UI Integration', () => {
       ).value
     ).toBe('Majesté');
 
-    // 7. Configure export in ExportSidebar
+    // 7. Configure export in the Export drawer (peek is collapsed by default)
+    fireEvent.click(screen.getByRole('button', { name: /expand export settings/i }));
+
     // Target format: Plain Text (.txt)
     const txtFormatBtn = screen.getByRole('button', { name: /plain text/i });
     fireEvent.click(txtFormatBtn);

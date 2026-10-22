@@ -31,7 +31,7 @@ import { useExportStore } from '../src/state/exportStore';
 import { TopBar } from '../src/components/TopBar';
 import { SourcesSidebar } from '../src/components/SourcesSidebar';
 import { ReviewWorkspace } from '../src/components/ReviewWorkspace';
-import { ExportSidebar } from '../src/components/ExportSidebar';
+import { ExportDrawer } from '../src/components/export/ExportDrawer';
 import { BatchProgressModal } from '../src/components/BatchProgressModal';
 import App from '../src/App';
 
@@ -82,6 +82,7 @@ describe('Core Desktop UI Components', () => {
       warningsSheetOpen: false,
       jsonViewerOpen: false,
       toast: null,
+      exportDrawerExpanded: false,
     });
     useExportStore.setState({
       targetFormat: 'pro',
@@ -615,7 +616,7 @@ describe('Core Desktop UI Components', () => {
     });
   });
 
-  describe('ExportSidebar', () => {
+  describe('ExportDrawer', () => {
     beforeEach(async () => {
       const bytes = toProBytes(AMAZING_GRACE);
       await mockAdapter.writeFile('/test/Amazing Grace.pro', bytes);
@@ -623,7 +624,10 @@ describe('Core Desktop UI Components', () => {
     });
 
     it('selects target format, sets collision policy, and triggers export', async () => {
-      render(<ExportSidebar />);
+      render(<ExportDrawer />);
+
+      // Peek is collapsed by default; expand to reach settings
+      fireEvent.click(screen.getByRole('button', { name: 'Expand export settings' }));
 
       // Target format selector
       const vpcBtn = screen.getByRole('button', { name: /videopsalm/i });
@@ -643,12 +647,13 @@ describe('Core Desktop UI Components', () => {
       });
     });
 
-    it('disables export button and shows hint when output directory is empty', () => {
+    it('disables export button and shows folder helper when output directory is empty', () => {
       useExportStore.setState({ outputDirectory: '' });
 
-      render(<ExportSidebar />);
+      render(<ExportDrawer />);
 
-      expect(screen.getByText('Select destination folder')).toBeDefined();
+      expect(screen.getByText('No folder selected')).toBeDefined();
+      expect(screen.getByText('Pick an output folder')).toBeDefined();
 
       const exportBtn = screen.getByRole('button', { name: /export 1 song/i }) as HTMLButtonElement;
       expect(exportBtn.disabled).toBe(true);

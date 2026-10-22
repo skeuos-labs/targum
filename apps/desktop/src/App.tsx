@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { TopBar } from './components/TopBar';
 import { SourcesSidebar } from './components/SourcesSidebar';
 import { ReviewWorkspace } from './components/ReviewWorkspace';
-import { ExportSidebar } from './components/ExportSidebar';
+import { ExportDrawer } from './components/export/ExportDrawer';
 import { BatchProgressModal } from './components/BatchProgressModal';
 import { ImportStage } from './components/import/ImportStage';
 import { Toast } from './components/Toast';
@@ -103,7 +103,7 @@ export default function App() {
         <div className="flex flex-1 overflow-hidden">
           <SourcesSidebar />
           <ReviewWorkspace />
-          <ExportSidebar />
+          <ExportDrawer />
         </div>
       )}
       <BatchProgressModal />
