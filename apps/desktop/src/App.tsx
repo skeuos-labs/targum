@@ -17,15 +17,17 @@ export default function App() {
   const showToast = useUiStore((s) => s.showToast);
   const prevSourcesLengthRef = useRef(sources.length);
 
-  // Toast only on the 0 -> N crossing (initial import from empty stage)
+  // Toast only on the 0 -> N crossing (initial import from empty stage).
+  // Count presentations (songs), not source files — one file can hold many songs.
   useEffect(() => {
     const prev = prevSourcesLengthRef.current;
     const next = sources.length;
     if (prev === 0 && next > 0) {
-      showToast(`Imported ${next} ${next === 1 ? 'song' : 'songs'}`);
+      const songCount = sources.flatMap((s) => s.library.presentations).length;
+      showToast(`Imported ${songCount} ${songCount === 1 ? 'song' : 'songs'}`);
     }
     prevSourcesLengthRef.current = next;
-  }, [sources.length, showToast]);
+  }, [sources, showToast]);
 
   // Native OS drag-drop (Tauri). HTML5 DnD is swallowed by WebView2 when
   // dragDropEnabled is true (default), so this is the only path on desktop.

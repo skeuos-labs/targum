@@ -93,12 +93,13 @@ describe('End-to-End Real-World Sample UI Integration', () => {
         );
     });
 
-    // Toast fires once on the 0 -> N crossing, then auto-dismisses (~2s)
-    expect(await screen.findByText('Imported 2 songs')).toBeDefined();
-    expect(screen.getAllByText('Imported 2 songs')).toHaveLength(1);
+    // Toast fires once on the 0 -> N crossing, then auto-dismisses (~2s).
+    // Counts presentations, not files: 1 IZY song + 19 façade.vpc songs = 20.
+    expect(await screen.findByText('Imported 20 songs')).toBeDefined();
+    expect(screen.getAllByText('Imported 20 songs')).toHaveLength(1);
     await waitFor(
       () => {
-        expect(screen.queryByText('Imported 2 songs')).toBeNull();
+        expect(screen.queryByText('Imported 20 songs')).toBeNull();
       },
       { timeout: 4000 }
     );
