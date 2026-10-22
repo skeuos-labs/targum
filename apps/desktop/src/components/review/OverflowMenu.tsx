@@ -7,6 +7,8 @@ import { Button } from '../ui/button';
 export function OverflowMenu() {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const setWarningsSheetOpen = useUiStore((s) => s.setWarningsSheetOpen);
   const setJsonViewerOpen = useUiStore((s) => s.setJsonViewerOpen);
 
@@ -26,6 +28,36 @@ export function OverflowMenu() {
     };
   }, [open]);
 
+  // Focus first item on open so keyboard users land inside the menu.
+  useEffect(() => {
+    if (open) {
+      menuRef.current?.querySelector<HTMLButtonElement>('[role="menuitem"]')?.focus();
+    }
+  }, [open]);
+
+  const handleMenuKeyDown = (event: React.KeyboardEvent) => {
+    const items = Array.from(
+      menuRef.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? []
+    );
+    if (items.length === 0) return;
+
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      setOpen(false);
+      triggerRef.current?.focus();
+      return;
+    }
+
+    const currentIndex = items.findIndex((item) => item === document.activeElement);
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      items[(currentIndex + 1) % items.length]!.focus();
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      items[(currentIndex - 1 + items.length) % items.length]!.focus();
+    }
+  };
+
   const select = (action: () => void) => {
     setOpen(false);
     action();
@@ -34,6 +66,7 @@ export function OverflowMenu() {
   return (
     <div ref={rootRef} className="relative">
       <Button
+        ref={triggerRef}
         type="button"
         variant="ghost"
         size="icon-sm"
@@ -47,8 +80,10 @@ export function OverflowMenu() {
 
       {open && (
         <div
+          ref={menuRef}
           role="menu"
           aria-label="More"
+          onKeyDown={handleMenuKeyDown}
           className="absolute right-0 top-full z-50 mt-1 w-48 rounded-lg border border-border bg-popover p-1 text-sm text-popover-foreground shadow-md"
         >
           <button

@@ -1,6 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import type { Warning } from '@show-converter/engine';
-import { formatWarningChipLabel, summarizeWarnings } from '../src/lib/warningSummary';
+import {
+  formatWarningChipLabel,
+  summarizeWarnings,
+  warningChipTone,
+} from '../src/lib/warningSummary';
 
 function warn(severity: Warning['severity']): Warning {
   return { code: 'TEST', severity, message: 'msg' };
@@ -28,5 +32,17 @@ describe('formatWarningChipLabel', () => {
       formatWarningChipLabel([warn('warn'), warn('warn'), warn('error')])
     ).toBe('2 warn · 1 error');
     expect(formatWarningChipLabel([warn('info')])).toBe('1 info');
+  });
+});
+
+describe('warningChipTone', () => {
+  it('picks the highest severity present', () => {
+    expect(warningChipTone(summarizeWarnings([warn('info'), warn('warn'), warn('error')]))).toBe(
+      'error'
+    );
+    expect(warningChipTone(summarizeWarnings([warn('info'), warn('warn')]))).toBe('warn');
+    expect(warningChipTone(summarizeWarnings([warn('info')]))).toBe('info');
+    // No warnings: chip is not rendered, tone degrades to info
+    expect(warningChipTone(summarizeWarnings([]))).toBe('info');
   });
 });

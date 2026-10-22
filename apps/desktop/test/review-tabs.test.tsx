@@ -171,7 +171,7 @@ describe('Center workspace Content | Details | ⋯', () => {
     expect(screen.getByText(/no warnings/i)).toBeDefined();
   });
 
-  it('severity-aware chip label: 2 warn · 1 error form', () => {
+  it('severity-aware chip label: 2 warn · 1 error form, red tone when errors present', () => {
     seedSource([
       { code: 'W1', severity: 'warn', message: 'warn one' },
       { code: 'W2', severity: 'warn', message: 'warn two' },
@@ -179,7 +179,36 @@ describe('Center workspace Content | Details | ⋯', () => {
     ]);
     render(<ReviewWorkspace />);
 
-    expect(screen.getByRole('button', { name: /2 warn · 1 error/i })).toBeDefined();
+    const chip = screen.getByRole('button', { name: /2 warn · 1 error/i });
+    expect(chip.className).toContain('text-red-600');
+  });
+
+  it('chip stays amber for warn-only (no errors)', () => {
+    seedSource([{ code: 'W1', severity: 'warn', message: 'warn one' }]);
+    render(<ReviewWorkspace />);
+
+    const chip = screen.getByRole('button', { name: /1 warn/i });
+    expect(chip.className).toContain('text-amber-600');
+  });
+
+  it('overflow menu: Escape closes and returns focus to trigger; ArrowDown cycles items', () => {
+    render(<ReviewWorkspace />);
+
+    const trigger = screen.getByRole('button', { name: 'More' });
+    fireEvent.click(trigger);
+    const firstItem = screen.getByRole('menuitem', { name: /full diagnostics/i });
+    expect(document.activeElement).toBe(firstItem);
+
+    fireEvent.keyDown(firstItem, { key: 'ArrowDown' });
+    const secondItem = screen.getByRole('menuitem', { name: /raw json ast/i });
+    expect(document.activeElement).toBe(secondItem);
+
+    fireEvent.keyDown(secondItem, { key: 'ArrowDown' });
+    expect(document.activeElement).toBe(firstItem);
+
+    fireEvent.keyDown(firstItem, { key: 'Escape' });
+    expect(screen.queryByRole('menu', { name: /more/i })).toBeNull();
+    expect(document.activeElement).toBe(trigger);
   });
 
   it('Overflow → Raw JSON AST opens JSON viewer with tree and Copy JSON', async () => {

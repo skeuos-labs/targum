@@ -1,6 +1,6 @@
 import type { Presentation } from '@show-converter/engine';
 import { Check, Copy } from 'lucide-react';
-import { useFlash } from '../../lib/useFlash';
+import { useCopyText } from '../../lib/useCopyText';
 import { useUiStore } from '../../state/uiStore';
 import { Button } from '../ui/button';
 import {
@@ -16,18 +16,9 @@ import { JsonTreeNode } from '../JsonTreeNode';
 export function JsonViewerModal({ song }: { song: Presentation }) {
   const open = useUiStore((s) => s.jsonViewerOpen);
   const setJsonViewerOpen = useUiStore((s) => s.setJsonViewerOpen);
-  const [copied, flashCopied] = useFlash();
+  const { copied, copy } = useCopyText();
 
-  const handleCopyJson = async () => {
-    try {
-      if (typeof navigator !== 'undefined' && navigator.clipboard) {
-        await navigator.clipboard.writeText(JSON.stringify(song, null, 2));
-        flashCopied();
-      }
-    } catch {
-      // clipboard fallback
-    }
-  };
+  const handleCopyJson = () => copy(JSON.stringify(song, null, 2));
 
   return (
     <Dialog open={open} onOpenChange={(next) => setJsonViewerOpen(next)}>

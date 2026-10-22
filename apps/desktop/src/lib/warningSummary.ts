@@ -28,6 +28,13 @@ export function summarizeWarnings(warnings: Warning[]): WarningSummary {
   return summary;
 }
 
+/** Highest severity present — drives the chip's color tone. */
+export function warningChipTone(summary: WarningSummary): 'error' | 'warn' | 'info' {
+  if (summary.error > 0) return 'error';
+  if (summary.warn > 0) return 'warn';
+  return 'info';
+}
+
 /** Severity-aware chip label, e.g. "2 warn · 1 error" or "OK". */
 export function formatWarningChipLabel(warnings: Warning[]): string {
   const s = summarizeWarnings(warnings);
