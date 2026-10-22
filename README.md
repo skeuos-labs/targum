@@ -625,10 +625,10 @@ show-converter/
 ├── apps/
 │   └── desktop/               # Native desktop GUI app (@show-converter/desktop)
 │       ├── src/
-│       │   ├── components/    # TopBar, StatusBar, SourcesSidebar, ReviewWorkspace, ExportSidebar
-│       │   ├── state/         # Zustand stores (sourceStore, exportStore, themeStore)
+│       │   ├── components/    # TopBar, SourcesSidebar, ReviewWorkspace, ExportDrawer, ImportStage, Toast
+│       │   ├── state/         # Zustand stores (sourceStore, exportStore, uiStore, themeStore, dndStore)
 │       │   ├── platform/      # PlatformAdapter abstraction (Tauri, Mock, Web)
-│       │   └── App.tsx        # Main 3-column layout shell
+│       │   └── App.tsx        # Two-stage shell: Import stage → Workbench
 │       ├── src-tauri/         # Tauri 2 Rust application host and OS bridges
 │       └── test/              # Vitest + React Testing Library component & E2E tests
 ├── docs/                      # Phase 1, Phase 2, and Phase 3 milestone reports & specs
