@@ -67,4 +67,39 @@ describe('App', () => {
       { timeout: 4000 }
     );
   });
+
+  it('re-import after Clear All resets centerTab and contentSegment to Content/Structure', async () => {
+    render(<App />);
+
+    await act(async () => {
+      await useSourceStore.getState().addFiles(['/samples/one.pro'], mockAdapter);
+    });
+    await screen.findByText('Imported 1 song');
+
+    // Move off the default view, then clear all sources
+    await act(async () => {
+      useUiStore.getState().setCenterTab('details');
+      useUiStore.getState().setContentSegment('projection');
+      useSourceStore.getState().clearAll();
+    });
+    expect(useSourceStore.getState().sources).toHaveLength(0);
+    expect(screen.getByText('Drop songs to convert')).toBeDefined();
+
+    // Re-import: workbench must open on Content / Structure (spec §4)
+    await act(async () => {
+      await useSourceStore.getState().addFiles(['/samples/one.pro'], mockAdapter);
+    });
+    await screen.findByText('Imported 1 song');
+
+    expect(useUiStore.getState().centerTab).toBe('content');
+    expect(useUiStore.getState().contentSegment).toBe('structure');
+    expect(
+      screen.getByRole('tab', { name: /content/i }).getAttribute('aria-selected')
+    ).toBe('true');
+    expect(
+      screen
+        .getByRole('button', { name: /^structure$/i })
+        .getAttribute('aria-pressed')
+    ).toBe('true');
+  });
 });

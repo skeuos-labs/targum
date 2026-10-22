@@ -30,6 +30,7 @@ export function ExportPeek({ expanded, onToggle, onHelperClick, children }: Expo
   const canExport = blockReason === null && !isExporting;
 
   const formatOption = FORMAT_OPTIONS.find((f) => f.id === targetFormat) ?? FORMAT_OPTIONS[0]!;
+  const destination = outputDirectory.trim();
 
   const handleExport = () => {
     executeExport(getPlatformAdapter()).catch(() => {});
@@ -56,16 +57,23 @@ export function ExportPeek({ expanded, onToggle, onHelperClick, children }: Expo
       {!expanded && (
         <div className="space-y-2 border-b border-border p-3">
           <div className="flex items-center gap-2">
-            <span className="rounded bg-muted px-2 py-0.5 text-[11px] font-medium text-foreground">
+            {/* Format chip opens the expanded settings (controller ruling). */}
+            <Button
+              type="button"
+              variant="ghost"
+              size="xs"
+              onClick={() => onToggle()}
+              className="h-auto rounded bg-muted px-2 py-0.5 text-[11px] font-medium text-foreground hover:bg-muted/80"
+            >
               {formatOption.label}
-            </span>
+            </Button>
             <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
               {formatOption.ext}
             </span>
           </div>
-          {outputDirectory ? (
-            <p className="truncate text-[11px] text-muted-foreground" title={outputDirectory}>
-              {outputDirectory}
+          {destination ? (
+            <p className="truncate text-[11px] text-muted-foreground" title={destination}>
+              {destination}
             </p>
           ) : (
             <p className="text-[11px] font-medium text-amber-500">No folder selected</p>

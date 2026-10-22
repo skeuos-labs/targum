@@ -104,9 +104,7 @@ describe('Core Desktop UI Components', () => {
   describe('Empty state', () => {
     it('renders empty workspace when no presentation is loaded', () => {
       render(<ReviewWorkspace />);
-      expect(
-        screen.getByText('Drop presentation files to get started')
-      ).toBeDefined();
+      expect(screen.getByText('Drop songs to convert')).toBeDefined();
     });
 
     it('handles dropping File objects onto empty ReviewWorkspace', async () => {

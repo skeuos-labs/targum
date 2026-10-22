@@ -91,4 +91,45 @@ describe('ImportStage and stage routing', () => {
     expect(screen.getByRole('heading', { name: /sources/i })).toBeDefined();
     expect(screen.queryByText(/^Imported /)).toBeNull();
   });
+
+  it('drops a directory path and imports nested supported files', async () => {
+    render(<ImportStage />);
+
+    const mainEl = screen.getByRole('main');
+    const dirDrop = { path: '/samples' } as unknown as File & { path: string };
+    await act(async () => {
+      fireEvent.drop(mainEl, { dataTransfer: { files: [dirDrop] } });
+    });
+
+    // Directory scan finds Amazing Grace.pro under /samples
+    await waitFor(() => {
+      expect(useSourceStore.getState().sources).toHaveLength(1);
+    });
+    expect(useSourceStore.getState().sources[0]!.name).toBe('Amazing Grace.pro');
+  });
+
+  it('importPaths with unsupported inputs toasts No supported songs found', async () => {
+    render(<App />);
+
+    await act(async () => {
+      await useSourceStore.getState().importPaths(['/samples/missing.pro'], mockAdapter);
+    });
+
+    expect(useSourceStore.getState().sources).toHaveLength(0);
+    expect(await screen.findByText('No supported songs found')).toBeDefined();
+    // Success toast must not also fire
+    expect(screen.queryByText(/^Imported /)).toBeNull();
+  });
+
+  it('Add Folder on an empty directory toasts No supported songs found', async () => {
+    vi.spyOn(mockAdapter, 'pickDirectory').mockResolvedValue('/empty-folder');
+    render(<App />);
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Add Folder' }));
+    });
+
+    expect(useSourceStore.getState().sources).toHaveLength(0);
+    expect(await screen.findByText('No supported songs found')).toBeDefined();
+  });
 });

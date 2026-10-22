@@ -169,6 +169,27 @@ describe('ExportDrawer', () => {
       expect(input).not.toBeNull();
       expect(document.activeElement).toBe(input);
     });
+
+    it('format chip expands the drawer (opens expanded settings)', () => {
+      render(<ExportDrawer />);
+
+      fireEvent.click(screen.getByRole('button', { name: 'ProPresenter' }));
+
+      expect(useUiStore.getState().exportDrawerExpanded).toBe(true);
+      expect(screen.getByText('Target Format')).toBeDefined();
+    });
+
+    it('treats whitespace-only output directory as unset in the peek', () => {
+      useExportStore.setState({ outputDirectory: '   ' });
+      render(<ExportDrawer />);
+
+      expect(screen.getByText('No folder selected')).toBeDefined();
+      expect(screen.getByText('Pick an output folder')).toBeDefined();
+      const exportBtn = screen.getByRole('button', {
+        name: /export 2 songs/i,
+      }) as HTMLButtonElement;
+      expect(exportBtn.disabled).toBe(true);
+    });
   });
 
   describe('expanded settings', () => {

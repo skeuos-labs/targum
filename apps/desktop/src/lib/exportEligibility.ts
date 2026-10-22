@@ -7,7 +7,7 @@ export function getExportBlockReason(
   if (selectedCount <= 0) {
     return 'no-selection';
   }
-  if (!outputDirectory) {
+  if (!outputDirectory.trim()) {
     return 'no-output-dir';
   }
   return null;

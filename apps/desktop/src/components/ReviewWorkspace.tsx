@@ -6,6 +6,7 @@ import { useDropTarget } from '../lib/useDropTarget';
 import { DropOverlay } from './DropOverlay';
 import { useDndStore } from '../state/dndStore';
 import { formatSourceFormatLabel } from '../lib/formatLabels';
+import { IMPORT_FORMATS_LINE, IMPORT_HEADLINE } from '../lib/importFormats';
 import { useSlideToSectionMap } from '../lib/useSlideToSectionMap';
 import { useUiStore, type CenterTab } from '../state/uiStore';
 import { Tabs, TabsContent } from './ui/tabs';
@@ -20,6 +21,8 @@ export function ReviewWorkspace() {
   const selectedSourceId = useSourceStore((s) => s.selectedSourceId);
   const selectedSongId = useSourceStore((s) => s.selectedSongId);
   const addFiles = useSourceStore((s) => s.addFiles);
+  const importPaths = useSourceStore((s) => s.importPaths);
+  const showToast = useUiStore((s) => s.showToast);
   const isDraggingOver = useDndStore((s) => s.dragging && s.target === 'center');
   const centerTab = useUiStore((s) => s.centerTab);
   const setCenterTab = useUiStore((s) => s.setCenterTab);
@@ -28,10 +31,13 @@ export function ReviewWorkspace() {
   const { ref: dropRef } = useDropTarget({
     id: 'center',
     onDropFiles: async (files) => {
-      await addFiles(files, adapterRef.current);
+      const count = await addFiles(files, adapterRef.current);
+      if (files.length > 0 && count === 0) {
+        showToast('No supported songs found');
+      }
     },
     onDropPaths: async (paths) => {
-      await addFiles(paths, adapterRef.current);
+      await importPaths(paths, adapterRef.current);
     },
   });
 
@@ -63,13 +69,8 @@ export function ReviewWorkspace() {
         <div className="mb-4 rounded-full bg-muted/60 p-4">
           <PresentationIcon className="h-10 w-10 text-muted-foreground opacity-60" />
         </div>
-        <h3 className="text-sm font-semibold text-foreground">
-          Drop presentation files to get started
-        </h3>
-        <p className="mt-1 max-w-sm text-xs text-muted-foreground">
-          Import ProPresenter (.pro, .pro6), VideoPsalm (.vpc), FreeShow (.show),
-          PowerPoint (.pptx), or text files to review and convert.
-        </p>
+        <h3 className="text-sm font-semibold text-foreground">{IMPORT_HEADLINE}</h3>
+        <p className="mt-1 max-w-sm text-xs text-muted-foreground">{IMPORT_FORMATS_LINE}</p>
       </main>
     );
   }

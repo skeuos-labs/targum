@@ -14,7 +14,8 @@ export function SourcesSidebar() {
   const selectedSongId = useSourceStore((s) => s.selectedSongId);
   const selectedSongs = useSourceStore((s) => s.selectedSongs);
   const addFiles = useSourceStore((s) => s.addFiles);
-  const addDirectory = useSourceStore((s) => s.addDirectory);
+  const importPaths = useSourceStore((s) => s.importPaths);
+  const showToast = useUiStore((s) => s.showToast);
   const removeSource = useSourceStore((s) => s.removeSource);
   const selectSong = useSourceStore((s) => s.selectSong);
   const toggleSongSelection = useSourceStore((s) => s.toggleSongSelection);
@@ -29,10 +30,13 @@ export function SourcesSidebar() {
   const { ref: dropRef } = useDropTarget({
     id: 'sidebar',
     onDropFiles: async (files) => {
-      await addFiles(files, adapter);
+      const count = await addFiles(files, adapter);
+      if (files.length > 0 && count === 0) {
+        showToast('No supported songs found');
+      }
     },
     onDropPaths: async (paths) => {
-      await addFiles(paths, adapter);
+      await importPaths(paths, adapter);
     },
   });
 
@@ -48,7 +52,7 @@ export function SourcesSidebar() {
     try {
       const paths = await adapter.pickFiles();
       if (paths && paths.length > 0) {
-        await addFiles(paths, adapter);
+        await importPaths(paths, adapter);
       }
     } catch {
       // Pick cancelled or failed
@@ -59,7 +63,7 @@ export function SourcesSidebar() {
     try {
       const dir = await adapter.pickDirectory();
       if (dir) {
-        await addDirectory(dir, true, adapter);
+        await importPaths([dir], adapter);
       }
     } catch {
       // Pick cancelled or failed

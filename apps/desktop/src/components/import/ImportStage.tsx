@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import { FilePlus, FolderPlus, UploadCloud } from 'lucide-react';
 import { useSourceStore } from '../../state/sourceStore';
+import { useUiStore } from '../../state/uiStore';
 import { useDndStore } from '../../state/dndStore';
 import { getPlatformAdapter } from '../../platform';
 import { useDropTarget } from '../../lib/useDropTarget';
@@ -11,17 +12,21 @@ import { Button } from '../ui/button';
 /** Empty-stage drop screen: pick or drop files when no sources are loaded. */
 export function ImportStage() {
   const addFiles = useSourceStore((s) => s.addFiles);
-  const addDirectory = useSourceStore((s) => s.addDirectory);
+  const importPaths = useSourceStore((s) => s.importPaths);
+  const showToast = useUiStore((s) => s.showToast);
   const isDraggingOver = useDndStore((s) => s.dragging && s.target === 'center');
   const adapterRef = useRef(getPlatformAdapter());
 
   const { ref: dropRef } = useDropTarget({
     id: 'center',
     onDropFiles: async (files) => {
-      await addFiles(files, adapterRef.current);
+      const count = await addFiles(files, adapterRef.current);
+      if (files.length > 0 && count === 0) {
+        showToast('No supported songs found');
+      }
     },
     onDropPaths: async (paths) => {
-      await addFiles(paths, adapterRef.current);
+      await importPaths(paths, adapterRef.current);
     },
   });
 
@@ -29,7 +34,7 @@ export function ImportStage() {
     try {
       const paths = await adapterRef.current.pickFiles();
       if (paths && paths.length > 0) {
-        await addFiles(paths, adapterRef.current);
+        await importPaths(paths, adapterRef.current);
       }
     } catch {
       // Pick cancelled or failed
@@ -40,7 +45,7 @@ export function ImportStage() {
     try {
       const dir = await adapterRef.current.pickDirectory();
       if (dir) {
-        await addDirectory(dir, true, adapterRef.current);
+        await importPaths([dir], adapterRef.current);
       }
     } catch {
       // Pick cancelled or failed

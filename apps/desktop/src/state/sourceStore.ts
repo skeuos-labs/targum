@@ -2,13 +2,14 @@ import { create } from 'zustand';
 import {
   importFile,
   detectFormat,
-  FORMAT_REGISTRY,
   type FormatId,
   type Library,
   type Metadata,
   type Warning,
 } from '@show-converter/engine';
 import { getPlatformAdapter, type PlatformAdapter } from '../platform';
+import { isSupportedImportPath, partitionImportPaths } from '../lib/importPaths';
+import { useUiStore } from './uiStore';
 
 export interface SourceFile {
   id: string;
@@ -27,8 +28,16 @@ export interface SourceStoreState {
   selectedSourceId?: string;
   selectedSongId?: string;
   selectedSongs: Set<string>; // composite "sourceId:songId"
-  addFiles(inputs: SourceInput[], adapter?: PlatformAdapter): Promise<void>;
-  addDirectory(dirPath: string, recursive?: boolean, adapter?: PlatformAdapter): Promise<void>;
+  /** Import file inputs; returns number of presentations added. */
+  addFiles(inputs: SourceInput[], adapter?: PlatformAdapter): Promise<number>;
+  /** Import all supported files under dirPath; returns presentations added. */
+  addDirectory(dirPath: string, recursive?: boolean, adapter?: PlatformAdapter): Promise<number>;
+  /**
+   * Dispatch path drops/picks: supported files via addFiles, other paths as
+   * recursive directory imports. Shows a zero-import toast when nothing loads.
+   * Returns total presentations added.
+   */
+  importPaths(paths: string[], adapter?: PlatformAdapter): Promise<number>;
   removeSource(id: string): void;
   selectSong(sourceId: string, songId: string): void;
   toggleSongSelection(sourceId: string, songId: string): void;
@@ -37,12 +46,6 @@ export interface SourceStoreState {
   updateSongMetadata(sourceId: string, songId: string, patch: Partial<Metadata>): void;
   clearAll(): void;
 }
-
-const SUPPORTED_IMPORT_EXTENSIONS = new Set(
-  FORMAT_REGISTRY.filter((f) => f.canImport).flatMap((f) =>
-    f.extensions.map((ext) => ext.toLowerCase())
-  )
-);
 
 function generateId(): string {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
@@ -74,7 +77,7 @@ export const useSourceStore = create<SourceStoreState>((set, get) => ({
   selectedSongId: undefined,
   selectedSongs: new Set<string>(),
 
-  addFiles: async (inputs: SourceInput[], adapter?: PlatformAdapter): Promise<void> => {
+  addFiles: async (inputs: SourceInput[], adapter?: PlatformAdapter): Promise<number> => {
     const activeAdapter = adapter ?? getPlatformAdapter();
     const newSources: SourceFile[] = [];
     const newSelectedSongs = new Set<string>(get().selectedSongs);
@@ -137,7 +140,7 @@ export const useSourceStore = create<SourceStoreState>((set, get) => ({
     }
 
     if (newSources.length === 0) {
-      return;
+      return 0;
     }
 
     const currentSources = get().sources;
@@ -160,28 +163,53 @@ export const useSourceStore = create<SourceStoreState>((set, get) => ({
       selectedSourceId: nextSelectedSourceId,
       selectedSongId: nextSelectedSongId,
     });
+
+    return newSources.reduce((n, s) => n + s.library.presentations.length, 0);
   },
 
   addDirectory: async (
     dirPath: string,
     recursive = false,
     adapter?: PlatformAdapter
-  ): Promise<void> => {
+  ): Promise<number> => {
     const activeAdapter = adapter ?? getPlatformAdapter();
-    const entries = await activeAdapter.readDir(dirPath, { recursive });
 
-    const matchingFiles = entries.filter((entryPath) => {
-      const parts = entryPath.split(/[/\\]/);
-      const filename = parts.pop() || '';
-      const dotIndex = filename.lastIndexOf('.');
-      if (dotIndex === -1) return false;
-      const ext = filename.slice(dotIndex).toLowerCase();
-      return SUPPORTED_IMPORT_EXTENSIONS.has(ext);
-    });
-
-    if (matchingFiles.length > 0) {
-      await get().addFiles(matchingFiles, activeAdapter);
+    let entries: string[];
+    try {
+      entries = await activeAdapter.readDir(dirPath, { recursive });
+    } catch {
+      // Unreadable path (or a plain file treated as a directory)
+      return 0;
     }
+
+    const matchingFiles = entries.filter((entryPath) => isSupportedImportPath(entryPath));
+
+    if (matchingFiles.length === 0) {
+      return 0;
+    }
+    return get().addFiles(matchingFiles, activeAdapter);
+  },
+
+  importPaths: async (paths: string[], adapter?: PlatformAdapter): Promise<number> => {
+    if (paths.length === 0) {
+      return 0;
+    }
+
+    const activeAdapter = adapter ?? getPlatformAdapter();
+    const { filePaths, dirPaths } = partitionImportPaths(paths);
+
+    let imported = 0;
+    if (filePaths.length > 0) {
+      imported += await get().addFiles(filePaths, activeAdapter);
+    }
+    for (const dirPath of dirPaths) {
+      imported += await get().addDirectory(dirPath, true, activeAdapter);
+    }
+
+    if (imported === 0) {
+      useUiStore.getState().showToast('No supported songs found');
+    }
+    return imported;
   },
 
   removeSource: (id: string): void => {

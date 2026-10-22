@@ -13,18 +13,23 @@ import { useUiStore } from './state/uiStore';
 
 export default function App() {
   const sources = useSourceStore((s) => s.sources);
-  const addFiles = useSourceStore((s) => s.addFiles);
+  const importPaths = useSourceStore((s) => s.importPaths);
   const showToast = useUiStore((s) => s.showToast);
   const prevSourcesLengthRef = useRef(sources.length);
 
   // Toast only on the 0 -> N crossing (initial import from empty stage).
   // Count presentations (songs), not source files — one file can hold many songs.
+  // Also reset the workbench to Content/Structure so re-import after Clear All
+  // never lands on a stale Details/Projection segment.
   useEffect(() => {
     const prev = prevSourcesLengthRef.current;
     const next = sources.length;
     if (prev === 0 && next > 0) {
       const songCount = sources.flatMap((s) => s.library.presentations).length;
       showToast(`Imported ${songCount} ${songCount === 1 ? 'song' : 'songs'}`);
+      const ui = useUiStore.getState();
+      ui.setCenterTab('content');
+      ui.setContentSegment('structure');
     }
     prevSourcesLengthRef.current = next;
   }, [sources, showToast]);
@@ -55,7 +60,7 @@ export default function App() {
       } else if (event.type === 'drop') {
         dnd.endDrag();
         if (event.paths && event.paths.length > 0) {
-          void addFiles(event.paths, adapter);
+          void importPaths(event.paths, adapter);
         }
       }
     });
@@ -71,7 +76,7 @@ export default function App() {
       window.removeEventListener('blur', onWindowBlur);
       useDndStore.getState().endDrag();
     };
-  }, [addFiles]);
+  }, [importPaths]);
 
   // Global HTML5 cancel: dragend / drop / Esc outside zones must clear overlay
   useEffect(() => {

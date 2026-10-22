@@ -1,6 +1,6 @@
 import type { Presentation, Warning } from '@show-converter/engine';
 import { AlertTriangle, Check, Copy, FileText } from 'lucide-react';
-import { summarizeWarnings } from '../../lib/warningSummary';
+import { formatWarningChipLabel, summarizeWarnings } from '../../lib/warningSummary';
 import { formatLyricsForCopy } from '../../lib/lyrics';
 import { useFlash } from '../../lib/useFlash';
 import type { SlideToSectionMap } from '../../lib/slideText';
@@ -17,17 +17,6 @@ export interface ContentHeaderProps {
   warnings: Warning[];
   song: Presentation;
   slideToSection: SlideToSectionMap;
-}
-
-/** Severity-aware chip label, e.g. "2 warn · 1 error" or "OK". */
-export function formatWarningChipLabel(warnings: Warning[]): string {
-  const s = summarizeWarnings(warnings);
-  if (s.total === 0) return 'OK';
-  const parts: string[] = [];
-  if (s.info > 0) parts.push(`${s.info} info`);
-  if (s.warn > 0) parts.push(`${s.warn} warn`);
-  if (s.error > 0) parts.push(`${s.error} error`);
-  return parts.join(' · ');
 }
 
 export function ContentHeader({

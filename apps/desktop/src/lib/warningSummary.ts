@@ -27,3 +27,14 @@ export function summarizeWarnings(warnings: Warning[]): WarningSummary {
 
   return summary;
 }
+
+/** Severity-aware chip label, e.g. "2 warn · 1 error" or "OK". */
+export function formatWarningChipLabel(warnings: Warning[]): string {
+  const s = summarizeWarnings(warnings);
+  if (s.total === 0) return 'OK';
+  const parts: string[] = [];
+  if (s.info > 0) parts.push(`${s.info} info`);
+  if (s.warn > 0) parts.push(`${s.warn} warn`);
+  if (s.error > 0) parts.push(`${s.error} error`);
+  return parts.join(' · ');
+}

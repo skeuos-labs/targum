@@ -41,10 +41,11 @@ npm run tauri -- build --workspace=@show-converter/desktop
 ┌────────────────────────────────────────────────────────┐
 │               React 19 Frontend Webview                │
 │                                                        │
-│  ┌───────────────────────┐   ┌──────────────────────┐  │
-│  │   Zustand UI Stores   │   │  3-Column Workspace  │  │
-│  │ (source, export, theme│   │(Sidebar, Review, Exp)│  │
-│  └───────────┬───────────┘   └──────────────────────┘  │
+│  ┌───────────────────────┐   ┌─────────────────────────┐ │
+│  │   Zustand UI Stores   │   │ Import ⇄ Workbench UI   │ │
+│  │ (source, export, theme│   │ (TopBar, Sources,       │ │
+│  │                       │   │  Review, ExportDrawer)  │ │
+│  └───────────┬───────────┘   └─────────────────────────┘ │
 │              ▼                                         │
 │  ┌──────────────────────────────────────────────────┐  │
 │  │       Pure TypeScript Conversion Engine          │  │
@@ -68,34 +69,30 @@ npm run tauri -- build --workspace=@show-converter/desktop
 2. **Lightweight Tauri Native Bridges:** The Rust host remains lean and secure, providing OS integration via Tauri 2 official plugins for native file picker dialogs, binary file read/write, native directory opening, and frameless window control.
 3. **Dual-Mode Platform Adapter (`PlatformAdapter`):** A clean interface layer that dynamically resolves to `TauriPlatformAdapter` inside Tauri webviews or `MockPlatformAdapter` / `WebPlatformAdapter` in browsers or CI test runners, allowing 100% of desktop UI behaviors and batch exports to be tested in automated React component tests without Rust dependencies.
 
-### 3-Column UI Guide
+### Desktop UI Guide
 
-The desktop workspace follows a streamlined three-column layout designed for rapid worship leader workflows:
+The shell has two stages — an empty **Import** drop screen and a loaded **Workbench** — plus a persistent TopBar:
 
-1. **Sources Sidebar (Left Column):**
-   - **File & Folder Ingestion:** Add individual files via native picker (`Add Files`), recursively scan entire folders (`Add Folder`), or drag-and-drop presentation files directly onto the workspace.
-   - **Multi-Song Accordions:** Source files containing multiple songs (e.g., VideoPsalm `.vpc` or FreeShow `.show`) expand into interactive song lists.
-   - **Song Selection:** Individual checkboxes per song and a global "Select All" toggle allow selective batch export.
-   - **Badge Indicators:** Real-time badge indicators for source formats and presentation counts.
+1. **Import stage** (no sources loaded):
+   - Drop screen headline **"Drop songs to convert"** with formats line; drop files/folders or use `Add Files` / `Add Folder`.
+   - Supported path drops route files by extension and directories via recursive scan; a drop that finds nothing toasts **"No supported songs found"**.
 
-2. **Review Workspace (Center Column):**
-   - **Title & Metadata Editing:** Editable presentation title input updating canonical models in real time, with metadata cards for Author, CCLI license number, and Copyright.
-   - **Colored Section Chips:** Visual section badges (Verse, Chorus, Bridge, Tag) displaying section names, slide counts, and custom section theme colors.
-   - **ProPresenter-Style 16:9 Slide Preview:** Responsive 16:9 widescreen slide cards with dark background theme, slide index badges (`1/17`), lyric text previews, and section color dot indicators.
-   - **Fidelity Warnings Banner:** Non-fatal format diagnostic alerts (`[PRO_STYLES_NOT_EXTRACTED]`, `[VPC_TAG_UNMAPPED]`) displayed without blocking workflows.
+2. **TopBar:** Sources chip (count + clear), theme toggle (Light / Dark / System), and frameless window controls (minimize, maximize/restore, close) with drag region.
 
-3. **Export Sidebar (Right Column):**
-   - **Target Format Selector:** One-click format selection across ProPresenter 7 (`.pro`), VideoPsalm (`.vpc`), FreeShow (`.show`), Plain Text (`.txt`), and PowerPoint (`.pptx`).
-   - **Multi-Song Options:**
-     - *Combine into single file:* Merges selected songs into a single presentation deck with sections (`.pptx`, `.vpc`, `.show`).
-     - *Library folder & playlist:* Generates a named ProPresenter 7 library folder containing individual `.pro` files alongside an ordered `.proplaylist` playlist file.
-   - **Collision Policy:** Configurable overwrite protection (`rename`, `skip`, `overwrite`, `error`).
-   - **Output Destination:** Output folder selection with real-time validation and helpful hint triggers.
-   - **Export Progress Modal:** Modal displaying real-time item progress (`3 / 20`), progress percentage bar, and final summary report with direct "Open Output Folder" action.
+3. **Sources rail** (left, collapsible):
+   - `Add Files` / `Add Folder` pickers and HTML5/native drop targets.
+   - Multi-song accordions for VideoPsalm `.vpc`, FreeShow `.show`, and PowerPoint `.pptx`.
+   - Per-song checkboxes with **Select all** / **Select none** text actions and an `n/n` selected chip.
 
-4. **Window Controls & Theme Switcher:**
-   - Frameless custom title bar with window drag region, minimize, maximize/restore, and close buttons.
-   - Theme toggle supporting **Light**, **Dark**, and **System** color themes with persistence across app restarts.
+4. **Center (Content | Details | ⋯):**
+   - **Content** tab with Structure / Projection segment (song spine or 16:9 slide cards), title, format badge, warning chip, and Copy lyrics.
+   - **Details** tab with editable title and Author / CCLI / Copyright metadata cards.
+   - Overflow (⋯) menu opens Full diagnostics and Raw JSON AST; first import after Clear All always lands on Content / Structure.
+
+5. **Export drawer** (right, collapsible):
+   - Collapsed peek: format chip (opens expanded settings), destination path or "No folder selected", pinned Export button with helper (`Select songs to export` / `Pick an output folder`).
+   - Expanded: target format options, multi-song combine / library folder, collision policy, output directory.
+   - Batch progress modal on export with per-item results; no status bar.
 
 ---
 

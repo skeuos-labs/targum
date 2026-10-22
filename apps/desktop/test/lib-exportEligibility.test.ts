@@ -14,6 +14,10 @@ describe('getExportBlockReason', () => {
     expect(getExportBlockReason(3, '')).toBe('no-output-dir');
   });
 
+  it('treats whitespace-only output dir as unset', () => {
+    expect(getExportBlockReason(3, '   ')).toBe('no-output-dir');
+  });
+
   it('returns null when eligible', () => {
     expect(getExportBlockReason(3, '/out')).toBeNull();
   });
