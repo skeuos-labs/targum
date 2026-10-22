@@ -19,19 +19,17 @@ import { FormatOptions } from './FormatOptions';
 /** Expanded export configuration body (format grid, multi-song, collision, destination). */
 export function ExportSettings({ inputRef }: { inputRef: RefObject<HTMLInputElement | null> }) {
   const selectedCount = useSourceStore((s) => s.selectedSongs.size);
-  const {
-    targetFormat,
-    outputDirectory,
-    collisionPolicy,
-    combineMode,
-    combineName,
-    libraryName,
-    setTargetFormat,
-    setOutputDirectory,
-    setCollisionPolicy,
-    setCombineMode,
-    setLibraryName,
-  } = useExportStore();
+  const targetFormat = useExportStore((s) => s.targetFormat);
+  const outputDirectory = useExportStore((s) => s.outputDirectory);
+  const collisionPolicy = useExportStore((s) => s.collisionPolicy);
+  const combineMode = useExportStore((s) => s.combineMode);
+  const combineName = useExportStore((s) => s.combineName);
+  const libraryName = useExportStore((s) => s.libraryName);
+  const setTargetFormat = useExportStore((s) => s.setTargetFormat);
+  const setOutputDirectory = useExportStore((s) => s.setOutputDirectory);
+  const setCollisionPolicy = useExportStore((s) => s.setCollisionPolicy);
+  const setCombineMode = useExportStore((s) => s.setCombineMode);
+  const setLibraryName = useExportStore((s) => s.setLibraryName);
 
   const handleBrowseOutput = async () => {
     try {

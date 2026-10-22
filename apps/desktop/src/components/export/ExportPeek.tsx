@@ -22,7 +22,10 @@ interface ExportPeekProps {
  */
 export function ExportPeek({ expanded, onToggle, onHelperClick, children }: ExportPeekProps) {
   const selectedSongs = useSourceStore((s) => s.selectedSongs);
-  const { targetFormat, outputDirectory, isExporting, executeExport } = useExportStore();
+  const targetFormat = useExportStore((s) => s.targetFormat);
+  const outputDirectory = useExportStore((s) => s.outputDirectory);
+  const isExporting = useExportStore((s) => s.isExporting);
+  const executeExport = useExportStore((s) => s.executeExport);
 
   const selectedCount = selectedSongs.size;
   const blockReason = getExportBlockReason(selectedCount, outputDirectory);
