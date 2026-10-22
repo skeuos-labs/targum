@@ -462,6 +462,142 @@ describe('Core Desktop UI Components', () => {
         expect(useSourceStore.getState().sources.some((s) => s.name === 'SideDrop.pro')).toBe(true);
       });
     });
+
+    it('returns nothing when the sources rail is collapsed', () => {
+      act(() => {
+        useUiStore.getState().setSourcesRailCollapsed(true);
+      });
+
+      const { container } = render(<SourcesSidebar />);
+
+      expect(container.querySelector('aside')).toBeNull();
+      expect(screen.queryByText('Sources')).toBeNull();
+    });
+
+    it('shows file count, selected chip, and Select all / Select none controls', () => {
+      useSourceStore.setState({
+        sources: ['src-a', 'src-b'].map((id, si) => ({
+          id,
+          path: `/test/File ${si}.pro`,
+          name: `File ${si}.pro`,
+          format: 'pro' as const,
+          library: {
+            presentations: [
+              { ...AMAZING_GRACE, id: `song-${si}-1` },
+              { ...AMAZING_GRACE, id: `song-${si}-2` },
+            ],
+          },
+          warnings: [],
+          selectedSongId: `song-${si}-1`,
+        })),
+        selectedSourceId: 'src-a',
+        selectedSongId: 'song-0-1',
+        selectedSongs: new Set([
+          'src-a:song-0-1',
+          'src-a:song-0-2',
+          'src-b:song-1-1',
+          'src-b:song-1-2',
+        ]),
+      });
+
+      render(<SourcesSidebar />);
+
+      expect(screen.getByText('2 files')).toBeDefined();
+      expect(screen.getByText('4/4 selected')).toBeDefined();
+      expect(screen.getByRole('button', { name: 'Select all' })).toBeDefined();
+      expect(screen.getByRole('button', { name: 'Select none' })).toBeDefined();
+      // Old combined checkbox row is gone
+      expect(screen.queryByRole('checkbox', { name: /select all songs/i })).toBeNull();
+    });
+
+    it('Select none clears selection and Select all restores every song', () => {
+      useSourceStore.setState({
+        sources: ['src-a', 'src-b'].map((id, si) => ({
+          id,
+          path: `/test/File ${si}.pro`,
+          name: `File ${si}.pro`,
+          format: 'pro' as const,
+          library: {
+            presentations: [
+              { ...AMAZING_GRACE, id: `song-${si}-1` },
+              { ...AMAZING_GRACE, id: `song-${si}-2` },
+            ],
+          },
+          warnings: [],
+          selectedSongId: `song-${si}-1`,
+        })),
+        selectedSourceId: 'src-a',
+        selectedSongId: 'song-0-1',
+        selectedSongs: new Set([
+          'src-a:song-0-1',
+          'src-a:song-0-2',
+          'src-b:song-1-1',
+          'src-b:song-1-2',
+        ]),
+      });
+
+      render(<SourcesSidebar />);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Select none' }));
+      expect(useSourceStore.getState().selectedSongs.size).toBe(0);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Select all' }));
+      expect(useSourceStore.getState().selectedSongs.size).toBe(4);
+    });
+
+    it('collapsing the rail unmounts the aside without touching selectedSongs', () => {
+      useSourceStore.setState({
+        sources: [
+          {
+            id: 'src-a',
+            path: '/test/Amazing Grace.pro',
+            name: 'Amazing Grace.pro',
+            format: 'pro',
+            library: { presentations: [AMAZING_GRACE] },
+            warnings: [],
+            selectedSongId: AMAZING_GRACE.id,
+          },
+        ],
+        selectedSourceId: 'src-a',
+        selectedSongId: AMAZING_GRACE.id,
+        selectedSongs: new Set([`src-a:${AMAZING_GRACE.id}`]),
+      });
+
+      render(<SourcesSidebar />);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Collapse sources rail' }));
+
+      expect(useUiStore.getState().sourcesRailCollapsed).toBe(true);
+      expect(screen.queryByText('Sources')).toBeNull();
+      expect([...useSourceStore.getState().selectedSongs]).toEqual([
+        `src-a:${AMAZING_GRACE.id}`,
+      ]);
+    });
+
+    it('disables Select all / Select none when there are no eligible songs', () => {
+      useSourceStore.setState({
+        sources: [
+          {
+            id: 'src-empty',
+            path: '/test/Empty.pro',
+            name: 'Empty.pro',
+            format: 'pro',
+            library: { presentations: [] },
+            warnings: [],
+          },
+        ],
+        selectedSourceId: 'src-empty',
+        selectedSongId: undefined,
+        selectedSongs: new Set(),
+      });
+
+      render(<SourcesSidebar />);
+
+      const selectAllBtn = screen.getByRole('button', { name: 'Select all' }) as HTMLButtonElement;
+      const selectNoneBtn = screen.getByRole('button', { name: 'Select none' }) as HTMLButtonElement;
+      expect(selectAllBtn.disabled).toBe(true);
+      expect(selectNoneBtn.disabled).toBe(true);
+    });
   });
 
   describe('ExportSidebar', () => {

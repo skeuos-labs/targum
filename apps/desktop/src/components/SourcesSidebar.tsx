@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { FolderPlus, FilePlus } from 'lucide-react';
+import { FolderPlus, FilePlus, ChevronLeft } from 'lucide-react';
 import { useSourceStore } from '../state/sourceStore';
+import { useUiStore } from '../state/uiStore';
 import { getPlatformAdapter } from '../platform';
 import { useDropTarget } from '../lib/useDropTarget';
 import { DropOverlay } from './DropOverlay';
 import { Button } from './ui/button';
-import { Checkbox } from './ui/checkbox';
 import { SourceList } from './source/SourceList';
 
 export function SourcesSidebar() {
@@ -20,6 +20,8 @@ export function SourcesSidebar() {
   const toggleSongSelection = useSourceStore((s) => s.toggleSongSelection);
   const selectAllSongs = useSourceStore((s) => s.selectAllSongs);
   const clearAll = useSourceStore((s) => s.clearAll);
+  const sourcesRailCollapsed = useUiStore((s) => s.sourcesRailCollapsed);
+  const toggleSourcesRail = useUiStore((s) => s.toggleSourcesRail);
 
   const [expandedSources, setExpandedSources] = useState<Record<string, boolean>>({});
   const adapter = getPlatformAdapter();
@@ -40,8 +42,7 @@ export function SourcesSidebar() {
       allSongKeys.push(`${s.id}:${p.id}`);
     }
   }
-  const isAllSelected =
-    allSongKeys.length > 0 && allSongKeys.every((key) => selectedSongs.has(key));
+  const noEligibleSongs = allSongKeys.length === 0;
 
   const handleAddFiles = async () => {
     try {
@@ -65,6 +66,11 @@ export function SourcesSidebar() {
     }
   };
 
+  // Collapse only hides the rail; selection state stays untouched.
+  if (sourcesRailCollapsed) {
+    return null;
+  }
+
   return (
     <aside
       ref={dropRef}
@@ -74,47 +80,84 @@ export function SourcesSidebar() {
       <DropOverlay targetId="sidebar" compact />
 
       <div className="flex flex-col gap-2 border-b border-border p-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
-            Sources
-          </h2>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-baseline gap-1.5">
+            <h2 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+              Sources
+            </h2>
+            <span className="text-[11px] text-muted-foreground">
+              {sources.length} files
+            </span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+              {selectedSongs.size}/{allSongKeys.length} selected
+            </span>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-xs"
+              aria-label="Collapse sources rail"
+              onClick={toggleSourcesRail}
+            >
+              <ChevronLeft />
+            </Button>
+          </div>
+        </div>
+
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="xs"
+            onClick={handleAddFiles}
+            className="flex-1 justify-center"
+          >
+            <FilePlus data-icon="inline-start" />
+            <span>Add Files</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="xs"
+            onClick={handleAddFolder}
+            className="flex-1 justify-center"
+          >
+            <FolderPlus data-icon="inline-start" />
+            <span>Add Folder</span>
+          </Button>
           {sources.length > 0 && (
             <Button
-              variant="ghost"
+              variant="outline"
               size="xs"
               onClick={clearAll}
-              className="h-auto p-0 text-[11px] text-muted-foreground hover:text-destructive"
+              className="flex-1 justify-center text-muted-foreground hover:border-destructive/40 hover:text-destructive"
             >
               Clear All
             </Button>
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
-          <Button variant="outline" size="xs" onClick={handleAddFiles} className="justify-center">
-            <FilePlus data-icon="inline-start" />
-            <span>Add Files</span>
+        <div className="flex items-center gap-3 pt-1">
+          <Button
+            type="button"
+            variant="ghost"
+            size="xs"
+            disabled={noEligibleSongs}
+            onClick={() => selectAllSongs(true)}
+            className="h-auto p-0 text-[11px] text-muted-foreground hover:text-foreground"
+          >
+            Select all
           </Button>
-          <Button variant="outline" size="xs" onClick={handleAddFolder} className="justify-center">
-            <FolderPlus data-icon="inline-start" />
-            <span>Add Folder</span>
+          <Button
+            type="button"
+            variant="ghost"
+            size="xs"
+            disabled={noEligibleSongs}
+            onClick={() => selectAllSongs(false)}
+            className="h-auto p-0 text-[11px] text-muted-foreground hover:text-foreground"
+          >
+            Select none
           </Button>
         </div>
-
-        {allSongKeys.length > 0 && (
-          <div className="flex items-center justify-between pt-1">
-            <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
-              <Checkbox
-                checked={isAllSelected}
-                onCheckedChange={(checked) => selectAllSongs(checked === true)}
-                aria-label="Select all songs"
-              />
-              <span>
-                Select All ({selectedSongs.size}/{allSongKeys.length})
-              </span>
-            </label>
-          </div>
-        )}
       </div>
 
       <SourceList

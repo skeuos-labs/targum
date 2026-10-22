@@ -104,10 +104,11 @@ describe('End-to-End Real-World Sample UI Integration', () => {
       { timeout: 4000 }
     );
 
-    // No StatusBar after load
+    // No StatusBar after load. "N files" now belongs to the Sources rail
+    // header (replaces the deleted StatusBar), so assert it positively.
     expect(screen.queryByText(/^Ready$/i)).toBeNull();
-    expect(screen.queryByText(/^\d+ files$/)).toBeNull();
     expect(screen.queryByText(/^\d+ songs$/)).toBeNull();
+    expect(screen.getByText('2 files')).toBeDefined();
 
     // 3. Verify SourcesSidebar lists both imported sources
     expect(screen.getAllByText('IZY-original.pro').length).toBeGreaterThanOrEqual(1);
