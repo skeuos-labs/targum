@@ -26,6 +26,7 @@ import {
 import { MockPlatformAdapter, setPlatformAdapter } from '../src/platform';
 import { useThemeStore } from '../src/state/themeStore';
 import { useSourceStore } from '../src/state/sourceStore';
+import { useUiStore } from '../src/state/uiStore';
 import { useExportStore } from '../src/state/exportStore';
 import { TopBar } from '../src/components/TopBar';
 import { SourcesSidebar } from '../src/components/SourcesSidebar';
@@ -74,6 +75,7 @@ describe('Core Desktop UI Components', () => {
 
     useThemeStore.getState().setTheme('light');
     useSourceStore.getState().clearAll();
+    useUiStore.getState().setSourcesRailCollapsed(false);
     useExportStore.setState({
       targetFormat: 'pro',
       outputDirectory: '/output',
@@ -334,6 +336,63 @@ describe('Core Desktop UI Components', () => {
 
       fireEvent.click(closeBtn);
       expect(closeSpy).toHaveBeenCalled();
+    });
+
+    it('shows Sources (N) chip when rail collapsed with sources loaded; click expands rail', () => {
+      useSourceStore.setState({
+        sources: ['src-1', 'src-2', 'src-3'].map((id, i) => ({
+          id,
+          path: `/test/Song ${i}.pro`,
+          name: `Song ${i}.pro`,
+          format: 'pro' as const,
+          library: { presentations: [AMAZING_GRACE] },
+          warnings: [],
+          selectedSongId: AMAZING_GRACE.id,
+        })),
+      });
+      act(() => {
+        useUiStore.getState().setSourcesRailCollapsed(true);
+      });
+
+      render(<TopBar />);
+
+      const chip = screen.getByRole('button', { name: 'Sources (3)' });
+      fireEvent.click(chip);
+      expect(useUiStore.getState().sourcesRailCollapsed).toBe(false);
+    });
+
+    it('hides Sources chip when rail is expanded', () => {
+      useSourceStore.setState({
+        sources: [
+          {
+            id: 'src-1',
+            path: '/test/Amazing Grace.pro',
+            name: 'Amazing Grace.pro',
+            format: 'pro',
+            library: { presentations: [AMAZING_GRACE] },
+            warnings: [],
+            selectedSongId: AMAZING_GRACE.id,
+          },
+        ],
+      });
+      act(() => {
+        useUiStore.getState().setSourcesRailCollapsed(false);
+      });
+
+      render(<TopBar />);
+
+      expect(screen.queryByRole('button', { name: /^Sources \(/ })).toBeNull();
+    });
+
+    it('never shows Sources chip on Import stage even when rail collapsed', () => {
+      useSourceStore.setState({ sources: [] });
+      act(() => {
+        useUiStore.getState().setSourcesRailCollapsed(true);
+      });
+
+      render(<TopBar />);
+
+      expect(screen.queryByRole('button', { name: /^Sources \(/ })).toBeNull();
     });
   });
 

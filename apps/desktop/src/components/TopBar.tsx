@@ -1,5 +1,7 @@
 import { Minus, Square, X, Sun, Moon, Laptop } from 'lucide-react';
 import { useThemeStore, type Theme } from '../state/themeStore';
+import { useSourceStore } from '../state/sourceStore';
+import { useUiStore } from '../state/uiStore';
 import { getPlatformAdapter } from '../platform';
 import { Button } from './ui/button';
 import {
@@ -18,6 +20,9 @@ const THEME_OPTIONS: { value: Theme; label: string }[] = [
 
 export function TopBar() {
   const { theme, setTheme } = useThemeStore();
+  const sourcesCount = useSourceStore((s) => s.sources.length);
+  const sourcesRailCollapsed = useUiStore((s) => s.sourcesRailCollapsed);
+  const setSourcesRailCollapsed = useUiStore((s) => s.setSourcesRailCollapsed);
   const adapter = getPlatformAdapter();
 
   const handleMinimize = () => {
@@ -32,6 +37,8 @@ export function TopBar() {
     adapter.window.close().catch(() => {});
   };
 
+  const showSourcesChip = sourcesCount > 0 && sourcesRailCollapsed;
+
   return (
     <header
       className="flex h-10 w-full items-center justify-between border-b border-border bg-card px-3 text-xs select-none"
@@ -45,6 +52,16 @@ export function TopBar() {
         <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
           v0.1.0
         </span>
+        {showSourcesChip && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="xs"
+            onClick={() => setSourcesRailCollapsed(false)}
+          >
+            Sources ({sourcesCount})
+          </Button>
+        )}
       </div>
 
       {/* Right Controls: Theme Selector + Window Controls */}
