@@ -77,7 +77,7 @@ The shell has two stages — an empty **Import** drop screen and a loaded **Work
    - Drop screen headline **"Drop songs to convert"** with formats line; drop files/folders or use `Add Files` / `Add Folder`.
    - Supported path drops route files by extension and directories via recursive scan; a drop that finds nothing toasts **"No supported songs found"**.
 
-2. **TopBar:** Sources chip (count + clear), theme toggle (Light / Dark / System), and frameless window controls (minimize, maximize/restore, close) with drag region.
+2. **TopBar:** Sources chip (count; shown while the sources rail is collapsed — click to re-expand), theme toggle (Light / Dark / System), and frameless window controls (minimize, maximize/restore, close) with drag region.
 
 3. **Sources rail** (left, collapsible):
    - `Add Files` / `Add Folder` pickers and HTML5/native drop targets.

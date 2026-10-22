@@ -15,7 +15,6 @@ export function SourcesSidebar() {
   const selectedSongs = useSourceStore((s) => s.selectedSongs);
   const addFiles = useSourceStore((s) => s.addFiles);
   const importPaths = useSourceStore((s) => s.importPaths);
-  const showToast = useUiStore((s) => s.showToast);
   const removeSource = useSourceStore((s) => s.removeSource);
   const selectSong = useSourceStore((s) => s.selectSong);
   const toggleSongSelection = useSourceStore((s) => s.toggleSongSelection);
@@ -30,10 +29,7 @@ export function SourcesSidebar() {
   const { ref: dropRef } = useDropTarget({
     id: 'sidebar',
     onDropFiles: async (files) => {
-      const count = await addFiles(files, adapter);
-      if (files.length > 0 && count === 0) {
-        showToast('No supported songs found');
-      }
+      await addFiles(files, adapter);
     },
     onDropPaths: async (paths) => {
       await importPaths(paths, adapter);

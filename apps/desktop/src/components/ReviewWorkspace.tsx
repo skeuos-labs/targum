@@ -22,7 +22,6 @@ export function ReviewWorkspace() {
   const selectedSongId = useSourceStore((s) => s.selectedSongId);
   const addFiles = useSourceStore((s) => s.addFiles);
   const importPaths = useSourceStore((s) => s.importPaths);
-  const showToast = useUiStore((s) => s.showToast);
   const isDraggingOver = useDndStore((s) => s.dragging && s.target === 'center');
   const centerTab = useUiStore((s) => s.centerTab);
   const setCenterTab = useUiStore((s) => s.setCenterTab);
@@ -31,10 +30,7 @@ export function ReviewWorkspace() {
   const { ref: dropRef } = useDropTarget({
     id: 'center',
     onDropFiles: async (files) => {
-      const count = await addFiles(files, adapterRef.current);
-      if (files.length > 0 && count === 0) {
-        showToast('No supported songs found');
-      }
+      await addFiles(files, adapterRef.current);
     },
     onDropPaths: async (paths) => {
       await importPaths(paths, adapterRef.current);

@@ -1,7 +1,6 @@
 import { useRef } from 'react';
 import { FilePlus, FolderPlus, UploadCloud } from 'lucide-react';
 import { useSourceStore } from '../../state/sourceStore';
-import { useUiStore } from '../../state/uiStore';
 import { useDndStore } from '../../state/dndStore';
 import { getPlatformAdapter } from '../../platform';
 import { useDropTarget } from '../../lib/useDropTarget';
@@ -13,17 +12,13 @@ import { Button } from '../ui/button';
 export function ImportStage() {
   const addFiles = useSourceStore((s) => s.addFiles);
   const importPaths = useSourceStore((s) => s.importPaths);
-  const showToast = useUiStore((s) => s.showToast);
   const isDraggingOver = useDndStore((s) => s.dragging && s.target === 'center');
   const adapterRef = useRef(getPlatformAdapter());
 
   const { ref: dropRef } = useDropTarget({
     id: 'center',
     onDropFiles: async (files) => {
-      const count = await addFiles(files, adapterRef.current);
-      if (files.length > 0 && count === 0) {
-        showToast('No supported songs found');
-      }
+      await addFiles(files, adapterRef.current);
     },
     onDropPaths: async (paths) => {
       await importPaths(paths, adapterRef.current);

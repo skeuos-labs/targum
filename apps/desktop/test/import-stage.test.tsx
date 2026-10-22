@@ -108,6 +108,23 @@ describe('ImportStage and stage routing', () => {
     expect(useSourceStore.getState().sources[0]!.name).toBe('Amazing Grace.pro');
   });
 
+  it('mixed file+directory drop commits in one set so the toast counts every song', async () => {
+    // Second fixture outside /samples so the directory scan adds a different file
+    await mockAdapter.writeFile('/other/Second Song.pro', toProBytes(AMAZING_GRACE));
+
+    render(<App />);
+
+    await act(async () => {
+      await useSourceStore
+        .getState()
+        .importPaths(['/samples/Amazing Grace.pro', '/other'], mockAdapter);
+    });
+
+    expect(useSourceStore.getState().sources).toHaveLength(2);
+    // Single set on the 0→N crossing: toast must include both file and dir songs
+    expect(await screen.findByText('Imported 2 songs')).toBeDefined();
+  });
+
   it('importPaths with unsupported inputs toasts No supported songs found', async () => {
     render(<App />);
 

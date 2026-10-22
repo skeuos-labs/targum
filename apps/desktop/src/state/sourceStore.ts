@@ -140,6 +140,9 @@ export const useSourceStore = create<SourceStoreState>((set, get) => ({
     }
 
     if (newSources.length === 0) {
+      if (inputs.length > 0) {
+        useUiStore.getState().showToast('No supported songs found');
+      }
       return 0;
     }
 
@@ -198,18 +201,28 @@ export const useSourceStore = create<SourceStoreState>((set, get) => ({
     const activeAdapter = adapter ?? getPlatformAdapter();
     const { filePaths, dirPaths } = partitionImportPaths(paths);
 
-    let imported = 0;
-    if (filePaths.length > 0) {
-      imported += await get().addFiles(filePaths, activeAdapter);
-    }
+    // Expand directories up front so files and dirs commit in ONE addFiles
+    // set — the 0→N toast then counts every song in the gesture.
+    const allPaths = [...filePaths];
     for (const dirPath of dirPaths) {
-      imported += await get().addDirectory(dirPath, true, activeAdapter);
+      try {
+        const entries = await activeAdapter.readDir(dirPath, { recursive: true });
+        for (const entry of entries) {
+          if (isSupportedImportPath(entry)) {
+            allPaths.push(entry);
+          }
+        }
+      } catch {
+        // Unreadable path (or a plain file treated as a directory)
+      }
     }
 
-    if (imported === 0) {
+    if (allPaths.length === 0) {
       useUiStore.getState().showToast('No supported songs found');
+      return 0;
     }
-    return imported;
+    // addFiles toasts 'No supported songs found' itself when everything fails
+    return get().addFiles(allPaths, activeAdapter);
   },
 
   removeSource: (id: string): void => {
