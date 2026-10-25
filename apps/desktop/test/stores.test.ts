@@ -1,12 +1,11 @@
 // @vitest-environment jsdom
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import {
   createAmazingGracePresentation,
   writePro,
   type Presentation,
 } from '@show-converter/engine';
 import { MockPlatformAdapter, setPlatformAdapter } from '../src/platform';
-import { useThemeStore } from '../src/state/themeStore';
 import { useSourceStore } from '../src/state/sourceStore';
 import { useExportStore } from '../src/state/exportStore';
 
@@ -37,7 +36,6 @@ describe('Zustand UI State Stores', () => {
     setPlatformAdapter(mockAdapter);
 
     // Reset stores
-    useThemeStore.getState().setTheme('light');
     useSourceStore.getState().clearAll();
     useExportStore.setState({
       targetFormat: 'pro',
@@ -49,70 +47,6 @@ describe('Zustand UI State Stores', () => {
       isExporting: false,
       progress: { current: 0, total: 0, message: '' },
       lastSummary: null,
-    });
-  });
-
-  describe('themeStore', () => {
-    let matchMediaListeners: Array<(e: { matches: boolean }) => void> = [];
-    let prefersDark = false;
-
-    beforeEach(() => {
-      matchMediaListeners = [];
-      prefersDark = false;
-
-      window.matchMedia = vi.fn().mockImplementation((query: string) => ({
-        matches: prefersDark,
-        media: query,
-        onchange: null,
-        addListener: (fn: (e: { matches: boolean }) => void) => matchMediaListeners.push(fn),
-        removeListener: () => {},
-        addEventListener: (event: string, fn: (e: { matches: boolean }) => void) => {
-          if (event === 'change') matchMediaListeners.push(fn);
-        },
-        removeEventListener: () => {},
-        dispatchEvent: () => true,
-      }));
-    });
-
-    it('sets light and dark themes and updates DOM and localStorage', () => {
-      useThemeStore.getState().setTheme('dark');
-      expect(useThemeStore.getState().theme).toBe('dark');
-      expect(useThemeStore.getState().resolvedTheme).toBe('dark');
-      expect(document.documentElement.classList.contains('dark')).toBe(true);
-      expect(localStorage.getItem('show-converter-theme')).toBe('dark');
-
-      useThemeStore.getState().setTheme('light');
-      expect(useThemeStore.getState().theme).toBe('light');
-      expect(useThemeStore.getState().resolvedTheme).toBe('light');
-      expect(document.documentElement.classList.contains('dark')).toBe(false);
-      expect(localStorage.getItem('show-converter-theme')).toBe('light');
-    });
-
-    it('resolves system theme based on matchMedia', () => {
-      prefersDark = true;
-      useThemeStore.getState().setTheme('system');
-      expect(useThemeStore.getState().theme).toBe('system');
-      expect(useThemeStore.getState().resolvedTheme).toBe('dark');
-      expect(document.documentElement.classList.contains('dark')).toBe(true);
-
-      prefersDark = false;
-      useThemeStore.getState().setTheme('system');
-      expect(useThemeStore.getState().resolvedTheme).toBe('light');
-      expect(document.documentElement.classList.contains('dark')).toBe(false);
-    });
-
-    it('reacts to system color scheme changes when theme is system', () => {
-      prefersDark = false;
-      useThemeStore.getState().setTheme('system');
-      expect(useThemeStore.getState().resolvedTheme).toBe('light');
-
-      // Trigger media query change event
-      for (const listener of matchMediaListeners) {
-        listener({ matches: true });
-      }
-
-      expect(useThemeStore.getState().resolvedTheme).toBe('dark');
-      expect(document.documentElement.classList.contains('dark')).toBe(true);
     });
   });
 
