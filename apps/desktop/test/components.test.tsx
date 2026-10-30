@@ -135,7 +135,7 @@ describe('Core Desktop Shell & Modals', () => {
 
       render(<App />);
 
-      expect(screen.getByText('Show Converter')).toBeDefined();
+      expect(screen.getByText('Targum')).toBeDefined();
       expect(screen.getByRole('heading', { name: /sources/i })).toBeDefined();
       expect(screen.getAllByText('Amazing Grace.pro').length).toBeGreaterThanOrEqual(1);
       expect(screen.getByRole('heading', { name: /export/i })).toBeDefined();

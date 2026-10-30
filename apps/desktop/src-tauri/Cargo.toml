@@ -1,11 +1,11 @@
 [package]
-name = "show-converter-desktop"
+name = "targum"
 version = "0.1.0"
-description = "Show Converter Desktop App"
+description = "Targum - Presentation Converter Desktop App"
 edition = "2021"
 
 [lib]
-name = "show_converter_desktop_lib"
+name = "targum_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

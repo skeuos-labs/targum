@@ -1,6 +1,8 @@
-# Show Converter Engine
+# Targum
 
-Pure TypeScript conversion engine and CLI utility for worship presentations and church lyrics. Mediates conversions across formats using an intermediate canonical model without UI or desktop framework dependencies.
+Desktop utility for converting worship presentation files across formats (ProPresenter, VideoPsalm, FreeShow, PowerPoint, Plain Text), powered by Tauri 2, React 19, and the `@skeuos-labs/mizmor` presentation engine.
+
+Part of the [Skeuos Labs](https://github.com/skeuos-labs) ecosystem.
 
 ---
 
@@ -18,21 +20,17 @@ Pure TypeScript conversion engine and CLI utility for worship presentations and 
 
 ---
 
-## Desktop Application (Phase 3)
-
-Show Converter features a native cross-platform desktop application powered by **Tauri 2** and **React 19**, delivering high-performance, visual worship presentation review and batch conversions.
-
-### Quick Commands
+## Quick Commands
 
 ```bash
 # Run web preview dev server in browser
-npm run dev --workspace=@show-converter/desktop
+pnpm desktop:web
 
 # Run desktop app in native Tauri dev mode (requires Rust & Tauri CLI)
-npm run tauri -- dev --workspace=@show-converter/desktop
+pnpm desktop
 
 # Build self-contained production desktop installer/binary
-npm run tauri -- build --workspace=@show-converter/desktop
+pnpm desktop:build
 ```
 
 ### Architecture Overview

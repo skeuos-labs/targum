@@ -1,13 +1,13 @@
 {
-  "name": "show-converter-workspace",
+  "name": "targum-workspace",
   "version": "1.0.0",
   "private": true,
   "scripts": {
     "build": "pnpm -r run build",
     "test": "pnpm -r run test",
-    "desktop": "pnpm --filter @show-converter/desktop run tauri dev",
-    "desktop:web": "pnpm --filter @show-converter/desktop run dev",
-    "desktop:build": "pnpm --filter @show-converter/desktop run tauri build"
+    "desktop": "pnpm --filter @skeuos-labs/targum run tauri dev",
+    "desktop:web": "pnpm --filter @skeuos-labs/targum run dev",
+    "desktop:build": "pnpm --filter @skeuos-labs/targum run tauri build"
   },
   "overrides": {
     "vite": "^6.1.0",

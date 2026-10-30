@@ -47,7 +47,7 @@ export function TopBar() {
       {/* Brand & Version */}
       <div className="flex items-center gap-2" data-tauri-drag-region>
         <span className="font-bold tracking-tight text-foreground">
-          Show Converter
+          Targum
         </span>
         <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
           v0.1.0

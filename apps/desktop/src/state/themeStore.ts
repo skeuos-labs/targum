@@ -9,7 +9,7 @@ export interface ThemeStoreState {
   setTheme: (theme: Theme) => void;
 }
 
-const STORAGE_KEY = 'show-converter-theme';
+const STORAGE_KEY = 'targum-theme';
 
 function getInitialTheme(): Theme {
   try {

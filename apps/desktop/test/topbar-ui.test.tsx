@@ -30,7 +30,7 @@ describe('Core Desktop UI Components', () => {
       const { container } = render(<TopBar />);
 
       expect(container.querySelector('[data-tauri-drag-region]')).toBeDefined();
-      expect(screen.getByText('Show Converter')).toBeDefined();
+      expect(screen.getByText('Targum')).toBeDefined();
 
       // Theme toggle (Base UI Select: open + pick option)
       await selectOption(/theme/i, 'Dark');

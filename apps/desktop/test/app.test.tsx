@@ -32,7 +32,7 @@ describe('App', () => {
 
   it('renders desktop shell header', () => {
     render(<App />);
-    expect(screen.getByText('Show Converter')).toBeDefined();
+    expect(screen.getByText('Targum')).toBeDefined();
   });
 
   it('renders Import stage copy when empty with no StatusBar remnants', () => {

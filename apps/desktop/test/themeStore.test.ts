@@ -30,13 +30,13 @@ describe('themeStore', () => {
     expect(useThemeStore.getState().theme).toBe('dark');
     expect(useThemeStore.getState().resolvedTheme).toBe('dark');
     expect(document.documentElement.classList.contains('dark')).toBe(true);
-    expect(localStorage.getItem('show-converter-theme')).toBe('dark');
+    expect(localStorage.getItem('targum-theme')).toBe('dark');
 
     useThemeStore.getState().setTheme('light');
     expect(useThemeStore.getState().theme).toBe('light');
     expect(useThemeStore.getState().resolvedTheme).toBe('light');
     expect(document.documentElement.classList.contains('dark')).toBe(false);
-    expect(localStorage.getItem('show-converter-theme')).toBe('light');
+    expect(localStorage.getItem('targum-theme')).toBe('light');
   });
 
   it('resolves system theme based on matchMedia', () => {

@@ -2,5 +2,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    show_converter_desktop_lib::run();
+    targum_lib::run();
 }

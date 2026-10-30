@@ -27,7 +27,7 @@ export interface UiStoreState {
   clearToast(id?: number): void;
 }
 
-const SOURCES_RAIL_STORAGE_KEY = 'show-converter.sourcesRailCollapsed';
+const SOURCES_RAIL_STORAGE_KEY = 'targum.sourcesRailCollapsed';
 
 function readSourcesRailCollapsed(): boolean {
   try {

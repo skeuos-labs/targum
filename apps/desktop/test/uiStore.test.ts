@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { useUiStore } from '../src/state/uiStore';
 
 describe('uiStore', () => {
-  const STORAGE_KEY = 'show-converter.sourcesRailCollapsed';
+  const STORAGE_KEY = 'targum.sourcesRailCollapsed';
 
   beforeEach(() => {
     localStorage.clear();
