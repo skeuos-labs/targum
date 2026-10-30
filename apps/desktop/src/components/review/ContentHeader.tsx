@@ -1,4 +1,4 @@
-import type { Presentation, Warning } from '@show-converter/engine';
+﻿import type { Presentation, Warning } from '@skeuos-labs/mizmor';
 import { AlertTriangle, Check, Copy, FileText } from 'lucide-react';
 import {
   formatWarningChipLabel,
@@ -147,3 +147,4 @@ export function ContentHeader({
     </header>
   );
 }
+

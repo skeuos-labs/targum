@@ -1,7 +1,7 @@
-// @vitest-environment jsdom
+﻿// @vitest-environment jsdom
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, cleanup, act, waitFor } from '@testing-library/react';
-import { AMAZING_GRACE, writePro, type Presentation } from '@show-converter/engine';
+import { AMAZING_GRACE, writePro, type Presentation } from '@skeuos-labs/mizmor';
 import { MockPlatformAdapter, setPlatformAdapter } from '../src/platform';
 import { useSourceStore } from '../src/state/sourceStore';
 import { useUiStore } from '../src/state/uiStore';
@@ -150,3 +150,4 @@ describe('ImportStage and stage routing', () => {
     expect(await screen.findByText('No supported songs found')).toBeDefined();
   });
 });
+

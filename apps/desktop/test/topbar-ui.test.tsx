@@ -1,8 +1,8 @@
-// @vitest-environment jsdom
+﻿// @vitest-environment jsdom
 import './helpers/jsdomPolyfills';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, cleanup, act } from '@testing-library/react';
-import { AMAZING_GRACE } from '@show-converter/engine';
+import { AMAZING_GRACE } from '@skeuos-labs/mizmor';
 import { useThemeStore } from '../src/state/themeStore';
 import { useSourceStore } from '../src/state/sourceStore';
 import { useUiStore } from '../src/state/uiStore';
@@ -109,3 +109,4 @@ describe('Core Desktop UI Components', () => {
     });
   });
 });
+

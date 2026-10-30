@@ -1,6 +1,6 @@
-import type { RefObject } from 'react';
+﻿import type { RefObject } from 'react';
 import { FolderArchive, FolderOpen, Layers } from 'lucide-react';
-import type { CollisionPolicy } from '@show-converter/engine';
+import type { CollisionPolicy } from '@skeuos-labs/mizmor';
 import { useSourceStore } from '../../state/sourceStore';
 import { useExportStore } from '../../state/exportStore';
 import { getPlatformAdapter } from '../../platform';
@@ -155,3 +155,4 @@ export function ExportSettings({ inputRef }: { inputRef: RefObject<HTMLInputElem
     </div>
   );
 }
+

@@ -1,4 +1,4 @@
-import type { Presentation } from '@show-converter/engine';
+﻿import type { Presentation } from '@skeuos-labs/mizmor';
 import { getSlidePlainText, type SlideToSectionMap } from './slideText';
 
 /**
@@ -42,3 +42,4 @@ export function formatLyricsForCopy(
 
   return sectionTexts.join('\n\n');
 }
+

@@ -33,7 +33,7 @@ if (typeof Blob !== 'undefined' && !Blob.prototype.arrayBuffer) {
 
 const ASSETS_DIR = path.resolve(
   import.meta.dirname,
-  '../../../../assets-for-testing-purpose'
+  '../../../../fixtures'
 );
 
 describe('End-to-End Real-World Sample UI Integration', () => {

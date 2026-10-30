@@ -1,7 +1,7 @@
-// @vitest-environment jsdom
+﻿// @vitest-environment jsdom
 import { render, screen, act, waitFor, cleanup } from '@testing-library/react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { AMAZING_GRACE, writePro } from '@show-converter/engine';
+import { AMAZING_GRACE, writePro } from '@skeuos-labs/mizmor';
 import { MockPlatformAdapter, setPlatformAdapter } from '../src/platform';
 import { useSourceStore } from '../src/state/sourceStore';
 import { useUiStore } from '../src/state/uiStore';
@@ -103,3 +103,4 @@ describe('App', () => {
     ).toBe('true');
   });
 });
+

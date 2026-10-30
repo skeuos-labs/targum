@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+﻿// @vitest-environment jsdom
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup, act, waitFor } from '@testing-library/react';
 
@@ -23,7 +23,7 @@ if (typeof Blob !== 'undefined' && !Blob.prototype.arrayBuffer) {
   };
 }
 
-import { AMAZING_GRACE } from '@show-converter/engine';
+import { AMAZING_GRACE } from '@skeuos-labs/mizmor';
 import { MockPlatformAdapter, setPlatformAdapter } from '../src/platform';
 import { useSourceStore } from '../src/state/sourceStore';
 import { useUiStore } from '../src/state/uiStore';
@@ -255,3 +255,4 @@ describe('ExportDrawer', () => {
     });
   });
 });
+

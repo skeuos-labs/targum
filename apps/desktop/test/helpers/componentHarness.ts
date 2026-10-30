@@ -1,5 +1,5 @@
-import { screen, fireEvent } from '@testing-library/react';
-import { writePro, type Presentation } from '@show-converter/engine';
+﻿import { screen, fireEvent } from '@testing-library/react';
+import { writePro, type Presentation } from '@skeuos-labs/mizmor';
 import { MockPlatformAdapter, setPlatformAdapter } from '../../src/platform';
 import { useThemeStore } from '../../src/state/themeStore';
 import { useSourceStore } from '../../src/state/sourceStore';
@@ -59,3 +59,4 @@ export function setupDesktopTest(): MockPlatformAdapter {
 
   return mockAdapter;
 }
+

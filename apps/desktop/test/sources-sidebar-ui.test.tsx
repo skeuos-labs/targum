@@ -1,8 +1,8 @@
-// @vitest-environment jsdom
+﻿// @vitest-environment jsdom
 import './helpers/jsdomPolyfills';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, cleanup, act, waitFor } from '@testing-library/react';
-import { AMAZING_GRACE } from '@show-converter/engine';
+import { AMAZING_GRACE } from '@skeuos-labs/mizmor';
 import { useSourceStore } from '../src/state/sourceStore';
 import { useUiStore } from '../src/state/uiStore';
 import { SourcesSidebar } from '../src/components/SourcesSidebar';
@@ -217,3 +217,4 @@ describe('SourcesSidebar Component', () => {
     expect(selectNoneBtn.disabled).toBe(true);
   });
 });
+

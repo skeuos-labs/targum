@@ -1,4 +1,4 @@
-import type { Warning } from '@show-converter/engine';
+﻿import type { Warning } from '@skeuos-labs/mizmor';
 
 export interface WarningSummary {
   info: number;
@@ -45,3 +45,4 @@ export function formatWarningChipLabel(warnings: Warning[]): string {
   if (s.error > 0) parts.push(`${s.error} error`);
   return parts.join(' · ');
 }
+

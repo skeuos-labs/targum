@@ -1,8 +1,8 @@
-// @vitest-environment jsdom
+﻿// @vitest-environment jsdom
 import './helpers/jsdomPolyfills';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, cleanup, act } from '@testing-library/react';
-import { AMAZING_GRACE } from '@show-converter/engine';
+import { AMAZING_GRACE } from '@skeuos-labs/mizmor';
 import { useSourceStore } from '../src/state/sourceStore';
 import { useExportStore } from '../src/state/exportStore';
 import { ExportDrawer } from '../src/components/export/ExportDrawer';
@@ -150,3 +150,4 @@ describe('Core Desktop Shell & Modals', () => {
     });
   });
 });
+

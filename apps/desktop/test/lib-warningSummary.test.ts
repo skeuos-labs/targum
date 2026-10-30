@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import type { Warning } from '@show-converter/engine';
+﻿import { describe, it, expect } from 'vitest';
+import type { Warning } from '@skeuos-labs/mizmor';
 import {
   formatWarningChipLabel,
   summarizeWarnings,
@@ -46,3 +46,4 @@ describe('warningChipTone', () => {
     expect(warningChipTone(summarizeWarnings([]))).toBe('info');
   });
 });
+

@@ -1,4 +1,4 @@
-import type { Presentation, Slide } from '@show-converter/engine';
+﻿import type { Presentation, Slide } from '@skeuos-labs/mizmor';
 
 export type SlideToSectionMap = Map<string, { name: string; color?: string }>;
 
@@ -38,3 +38,4 @@ export function buildArrangementSequence(
   }
   return seq.length > 0 ? seq : fallbackSections.map((s) => s.name);
 }
+

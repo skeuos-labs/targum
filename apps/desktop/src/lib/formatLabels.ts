@@ -1,4 +1,4 @@
-import type { FormatId } from '@show-converter/engine';
+﻿import type { FormatId } from '@skeuos-labs/mizmor';
 
 export function formatSourceFormatLabel(fmt: FormatId | string): string {
   switch (fmt.toLowerCase()) {
@@ -21,3 +21,4 @@ export function formatSourceFormatLabel(fmt: FormatId | string): string {
       return fmt.toUpperCase();
   }
 }
+

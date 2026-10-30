@@ -1,7 +1,7 @@
-// @vitest-environment jsdom
+﻿// @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from 'vitest';
 import { render, waitFor, act } from '@testing-library/react';
-import { writePro, AMAZING_GRACE } from '@show-converter/engine';
+import { writePro, AMAZING_GRACE } from '@skeuos-labs/mizmor';
 import { MockPlatformAdapter, setPlatformAdapter } from '../src/platform';
 import { useSourceStore } from '../src/state/sourceStore';
 import { useDndStore } from '../src/state/dndStore';
@@ -117,3 +117,4 @@ describe('App native drag-drop (Tauri path via Mock adapter)', () => {
     });
   });
 });
+

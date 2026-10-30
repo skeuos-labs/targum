@@ -1,10 +1,10 @@
-// @vitest-environment jsdom
+﻿// @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
   createAmazingGracePresentation,
   writePro,
   type Presentation,
-} from '@show-converter/engine';
+} from '@skeuos-labs/mizmor';
 import { MockPlatformAdapter, setPlatformAdapter } from '../src/platform';
 import { useSourceStore } from '../src/state/sourceStore';
 import { useExportStore } from '../src/state/exportStore';
@@ -355,3 +355,4 @@ describe('Zustand UI State Stores', () => {
     });
   });
 });
+

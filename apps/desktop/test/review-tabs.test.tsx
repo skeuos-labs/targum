@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+﻿// @vitest-environment jsdom
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 
@@ -19,12 +19,12 @@ if (typeof window !== 'undefined' && typeof window.PointerEvent === 'undefined')
     PointerEventPolyfill;
 }
 
-import { AMAZING_GRACE } from '@show-converter/engine';
+import { AMAZING_GRACE } from '@skeuos-labs/mizmor';
 import { MockPlatformAdapter, setPlatformAdapter } from '../src/platform';
 import { useSourceStore } from '../src/state/sourceStore';
 import { useUiStore } from '../src/state/uiStore';
 import { ReviewWorkspace } from '../src/components/ReviewWorkspace';
-import type { Warning } from '@show-converter/engine';
+import type { Warning } from '@skeuos-labs/mizmor';
 
 function seedSource(warnings: Warning[] = []) {
   useSourceStore.setState({
@@ -276,3 +276,4 @@ describe('Center workspace Content | Details | ⋯', () => {
     expect(screen.getAllByText('Amazing Grace').length).toBeGreaterThanOrEqual(1);
   });
 });
+

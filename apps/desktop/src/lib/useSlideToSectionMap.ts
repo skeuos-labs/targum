@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
-import type { Presentation } from '@show-converter/engine';
+﻿import { useMemo } from 'react';
+import type { Presentation } from '@skeuos-labs/mizmor';
 import { buildSlideToSectionMap, type SlideToSectionMap } from './slideText';
 
 /** Memoized slideId → section lookup for a presentation. */
@@ -9,3 +9,4 @@ export function useSlideToSectionMap(song: Presentation | undefined): SlideToSec
     [song]
   );
 }
+

@@ -1,4 +1,4 @@
-import type { Presentation, Warning } from '@show-converter/engine';
+﻿import type { Presentation, Warning } from '@skeuos-labs/mizmor';
 import type { SourceFile } from '../../state/sourceStore';
 import type { SlideToSectionMap } from '../../lib/slideText';
 
@@ -8,3 +8,4 @@ export interface ReviewTabProps {
   slideToSection: SlideToSectionMap;
   warnings: Warning[];
 }
+

@@ -1,4 +1,4 @@
-import type { Slide } from '@show-converter/engine';
+﻿import type { Slide } from '@skeuos-labs/mizmor';
 import { getSectionStyle } from '../../lib/sectionStyle';
 import { getSlidePlainText } from '../../lib/slideText';
 import type { ReviewTabProps } from './types';
@@ -68,3 +68,4 @@ export function StructureView({ song }: Pick<ReviewTabProps, 'song'>) {
     </div>
   );
 }
+

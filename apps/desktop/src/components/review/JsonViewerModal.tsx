@@ -1,4 +1,4 @@
-import type { Presentation } from '@show-converter/engine';
+﻿import type { Presentation } from '@skeuos-labs/mizmor';
 import { Check, Copy } from 'lucide-react';
 import { useCopyText } from '../../lib/useCopyText';
 import { useUiStore } from '../../state/uiStore';
@@ -54,3 +54,4 @@ export function JsonViewerModal({ song }: { song: Presentation }) {
     </Dialog>
   );
 }
+

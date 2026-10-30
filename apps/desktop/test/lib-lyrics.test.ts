@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { AMAZING_GRACE } from '@show-converter/engine';
+﻿import { describe, it, expect } from 'vitest';
+import { AMAZING_GRACE } from '@skeuos-labs/mizmor';
 import { formatLyricsForCopy } from '../src/lib/lyrics';
 import { buildSlideToSectionMap } from '../src/lib/slideText';
 
@@ -11,3 +11,4 @@ describe('formatLyricsForCopy', () => {
     expect(out).not.toMatch(/\n{3,}/);
   });
 });
+

@@ -1,4 +1,4 @@
-import type { Warning } from '@show-converter/engine';
+﻿import type { Warning } from '@skeuos-labs/mizmor';
 import { AlertTriangle, Check, Info } from 'lucide-react';
 import { useUiStore } from '../../state/uiStore';
 import { cn } from '../../lib/utils';
@@ -97,3 +97,4 @@ export function WarningsSheet({ warnings }: { warnings: Warning[] }) {
     </Dialog>
   );
 }
+

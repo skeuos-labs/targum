@@ -1,4 +1,4 @@
-import { sanitizeFileName, type CollisionPolicy } from '@show-converter/engine';
+﻿import { sanitizeFileName, type CollisionPolicy } from '@skeuos-labs/mizmor';
 import type { PlatformAdapter } from '../platform/adapter';
 
 export interface ResolvedOutputPath {
@@ -53,3 +53,4 @@ export async function resolveAdapterOutputPath(
     counter++;
   }
 }
+

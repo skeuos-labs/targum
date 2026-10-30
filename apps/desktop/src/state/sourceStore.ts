@@ -1,4 +1,4 @@
-import { create } from 'zustand';
+﻿import { create } from 'zustand';
 import {
   importFile,
   detectFormat,
@@ -6,7 +6,7 @@ import {
   type Library,
   type Metadata,
   type Warning,
-} from '@show-converter/engine';
+} from '@skeuos-labs/mizmor';
 import { getPlatformAdapter, type PlatformAdapter } from '../platform';
 import { isSupportedImportPath, partitionImportPaths } from '../lib/importPaths';
 import { useUiStore } from './uiStore';
@@ -367,3 +367,4 @@ export const useSourceStore = create<SourceStoreState>((set, get) => ({
     });
   },
 }));
+

@@ -1,4 +1,4 @@
-import { FORMAT_REGISTRY } from '@show-converter/engine';
+﻿import { FORMAT_REGISTRY } from '@skeuos-labs/mizmor';
 
 const SUPPORTED_IMPORT_EXTENSIONS = new Set(
   FORMAT_REGISTRY.filter((f) => f.canImport).flatMap((f) =>
@@ -34,3 +34,4 @@ export function partitionImportPaths(paths: string[]): {
   }
   return { filePaths, dirPaths };
 }
+

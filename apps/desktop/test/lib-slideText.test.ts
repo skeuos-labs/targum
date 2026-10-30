@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { AMAZING_GRACE } from '@show-converter/engine';
+﻿import { describe, it, expect } from 'vitest';
+import { AMAZING_GRACE } from '@skeuos-labs/mizmor';
 import {
   getSlidePlainText,
   buildSlideToSectionMap,
@@ -43,3 +43,4 @@ describe('slideText helpers', () => {
     ).toEqual(['Intro']);
   });
 });
+
